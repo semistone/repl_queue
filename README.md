@@ -10,8 +10,7 @@ use node.js to monitor sqlite and trigger consummer to consume msg
             to unix domain socket
         js addon consumer(c source) 
 
-### sqlite schema
----  volume_N.db
+### sqlite schema volume_N.db
     create table if not exists QUEUE_VOLUME (
         ID INTEGER PRIMARY KEY ASC,
         CMD TEXT,
@@ -21,7 +20,7 @@ use node.js to monitor sqlite and trigger consummer to consume msg
         CREATED INTEGER
     )
 
----  meta.db
+### sqlite schema metta.db
     create table if not exists QUEUE_VOLUME_ATTR(
         VOLUME int PRIMARY KEY,
         STATUS int,
@@ -35,7 +34,7 @@ use node.js to monitor sqlite and trigger consummer to consume msg
         LAST_RECORD int
     )
 
---- insert process
+### insert process
     step1: update volume_attr cnt=cnt+1 where volume=:volume and cnt<=:max  and status='read_write'
     step2: if update_cnt != 1 then
                if get volume lock
@@ -44,10 +43,9 @@ use node.js to monitor sqlite and trigger consummer to consume msg
                        update meta.volume = last_volume + 1 , last_record=0
                        create new volume file
                        insert new volume_attr  
+                       set to read only file. 
                        unlock
                    call step1
            insert volume  
            update meta  last_record = last_record +1, volume
                  
-if volume rotated,
-    set to read only file. 
