@@ -4,8 +4,8 @@ var config = {
     path: '.',
     file: 'test.db',
     consume_msg_callback: function(row, callback){
-        console.log(row.ID + ": " + row.DATA);
-        callback(false);
+        console.log('consume:' + row.ID + " data:" + row.DATA);
+        callback(true);
     },
     index: 1  
 }
@@ -75,12 +75,18 @@ var get_last_record_and_loop_message = function(finish_callback) {
     };
     var loop_message = function(last_record){
         db.each(SELECT_SQL, [last_record], function(err, row){
+            var retry = 0;
             update_cnt++;
             config.consume_msg_callback(row, function(consume_status){
                 if (consume_status) {
                     console.log('consume success');
                 }else{
                     console.log('consume false');
+                    retry++;
+                    if (retry > 3) {
+                        throw new Exception('retry to many times');
+                    }
+                    config.consume_msg_callback(row, arguments.callee);
                 }
             });
             console.log("loop row " + row.ID);
