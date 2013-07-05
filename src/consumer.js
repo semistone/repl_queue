@@ -28,17 +28,24 @@ var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ?";
 var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
 var INSERT_META_SQL = "insert into QUEUE_META values(?, 0)";
 var UPDATE_META_SQL = "update QUEUE_META set LAST_RECORD=? where ID=?";
-
+var processing = false; // if message loop is processing
 /**
  * if last update rows != 0, then keep going.
  *
  */
 var loop_scan_message = function(){
+    if (processing) {
+        console.log('i am processing');
+        return;
+    }
+    processing = true;
     var finish_callback = function(rows){
+        console.log('finish callback');
         if (rows != 0) {
             get_last_record_and_loop_message(arguments.callee);
         } else {
             console.log('end loop');
+            processing = false;
         }
     };
     get_last_record_and_loop_message(finish_callback);
@@ -49,6 +56,7 @@ var loop_scan_message = function(){
  */
 var get_last_record_and_loop_message = function(finish_callback) {
     var last_update_rows = 0;
+    var update_cnt = 0;
     var complete = false; // complete loop
     var each_complete_callback = function(err, rows){
         last_update_rows = rows;
@@ -58,13 +66,15 @@ var get_last_record_and_loop_message = function(finish_callback) {
         }
     };
     var update_meta_finish = function(){
-        console.log('update finish');
-        if (complete) {
+        console.log('update meta finish');
+        update_cnt--;
+        if (complete && update_cnt == 0) {
             finish_callback(last_update_rows);    
         }
     };
     var loop_message = function(last_record){
         db.each(SELECT_SQL, [last_record], function(err, row){
+            update_cnt++;
             config.consume_msg_callback(row);
             console.log("loop row " + row.ID);
             db.serialize(function() {
