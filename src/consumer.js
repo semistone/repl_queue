@@ -25,7 +25,7 @@ var CREATE_META_SQL = "create table if not exists QUEUE_META (\n"
     CREATE_META_SQL += "    LAST_RECORD int\n"
     CREATE_META_SQL += ")";
 
-var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ?";
+var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? limit 10";
 var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
 var INSERT_META_SQL = "insert into QUEUE_META values(?, 0)";
 var UPDATE_META_SQL = "update QUEUE_META set LAST_RECORD=? where ID=?";
@@ -43,7 +43,7 @@ var loop_scan_message = function(){
     var finish_callback = function(rows){
         console.log('finish callback');
         if (rows != 0) {
-            get_last_record_and_loop_message(arguments.callee);
+            get_last_record_and_loop_message(arguments.callee /* finish_callback*/);
         } else {
             console.log('end loop');
             processing = false;
@@ -59,13 +59,11 @@ var get_last_record_and_loop_message = function(finish_callback) {
     var last_update_rows = 0;
     var update_cnt = 0;
     var complete = false; // complete loop
-    var each_complete_callback = function(err, rows){
+    var task_complete_callback = function(rows){
         last_update_rows = rows;
         complete = true;
-        if (rows == 0) {
-            finish_callback(rows);
-        }
     };
+    var queue_size;
     var update_meta_finish = function(){
         console.log('update meta finish');
         update_cnt--;
@@ -73,13 +71,27 @@ var get_last_record_and_loop_message = function(finish_callback) {
             finish_callback(last_update_rows);    
         }
     };
-    var loop_message = function(last_record){
-        db.each(SELECT_SQL, [last_record], function(err, row){
+    var working_queue = [];
+
+    /**
+     * call when sqlite each loop finish.
+     *
+     */
+    var each_complete_callback = function(err, rows){
+        var sequence_task = function() {
+            console.log('next task size ' + working_queue.length);
+            if (working_queue.length == 0) { // all task done
+                task_complete_callback(queue_size);
+                return;
+            }
+            var row = working_queue.shift();
+            console.log('consume row ' + row.ID);
             var retry = 0;
             update_cnt++;
             config.consume_msg_callback(row, function(consume_status){
                 if (consume_status) {
                     console.log('consume success');
+                    arguments.callee.caller.caller(); /* recursive sequence_task() */
                 }else{
                     console.log('consume false');
                     retry++;
@@ -93,8 +105,31 @@ var get_last_record_and_loop_message = function(finish_callback) {
             db.serialize(function() {
                 db.run(UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
             });
+        };
+        if (rows == 0) {
+            console.log('empty rows');
+            finish_callback(rows);
+        }
+        queue_size = working_queue.length;
+        console.log('size is ' + queue_size);
+        sequence_task(); 
+    };
+    
+    /**
+     * loop message
+     *
+     */
+    var loop_message = function(last_record){
+        db.each(SELECT_SQL, [last_record], function(err, row){
+            working_queue.push(row);
+            console.log('push id ' + row.ID);
         }, each_complete_callback);
     };
+
+    /**
+     * get last record and start loop message.
+     *
+     */
     db.get(SELECT_META_SQL, [config.index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
