@@ -3,8 +3,9 @@ var fs = require('fs');
 var config = {
     path: '.',
     file: 'test.db',
-    consume_msg_callback: function(row){
+    consume_msg_callback: function(row, callback){
         console.log(row.ID + ": " + row.DATA);
+        callback(false);
     },
     index: 1  
 }
@@ -75,7 +76,13 @@ var get_last_record_and_loop_message = function(finish_callback) {
     var loop_message = function(last_record){
         db.each(SELECT_SQL, [last_record], function(err, row){
             update_cnt++;
-            config.consume_msg_callback(row);
+            config.consume_msg_callback(row, function(consume_status){
+                if (consume_status) {
+                    console.log('consume success');
+                }else{
+                    console.log('consume false');
+                }
+            });
             console.log("loop row " + row.ID);
             db.serialize(function() {
                 db.run(UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
