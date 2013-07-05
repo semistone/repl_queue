@@ -25,7 +25,7 @@ var CREATE_META_SQL = "create table if not exists QUEUE_META (\n"
     CREATE_META_SQL += "    LAST_RECORD int\n"
     CREATE_META_SQL += ")";
 
-var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? limit 10";
+var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? order by ID asc limit 10";
 var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
 var INSERT_META_SQL = "insert into QUEUE_META values(?, 0)";
 var UPDATE_META_SQL = "update QUEUE_META set LAST_RECORD=? where ID=?";
@@ -87,10 +87,12 @@ var get_last_record_and_loop_message = function(finish_callback) {
             var row = working_queue.shift();
             console.log('consume row ' + row.ID);
             var retry = 0;
-            update_cnt++;
-            config.consume_msg_callback(row, function(consume_status){
+            config.consume_msg_callback(row, function(consume_status){ // do consume
                 if (consume_status) {
                     console.log('consume success');
+                    db.serialize(function() {
+                        db.run(UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
+                    });
                     arguments.callee.caller.caller(); /* recursive sequence_task() */
                 }else{
                     console.log('consume false');
@@ -100,10 +102,6 @@ var get_last_record_and_loop_message = function(finish_callback) {
                     }
                     config.consume_msg_callback(row, arguments.callee);
                 }
-            });
-            console.log("loop row " + row.ID);
-            db.serialize(function() {
-                db.run(UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
             });
         };
         if (rows == 0) {
@@ -122,6 +120,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
     var loop_message = function(last_record){
         db.each(SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
+            update_cnt++;
             console.log('push id ' + row.ID);
         }, each_complete_callback);
     };
