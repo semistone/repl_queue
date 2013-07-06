@@ -1,5 +1,6 @@
 var DELIMITER = '/';
-var fs = require('fs');                                                                        
+var fs = require('fs');
+var sql = require('./sql.js');
 var config = {
     path: '.',
     file: 'test.db',
@@ -12,45 +13,7 @@ var config = {
 var volume_file = config.path + DELIMITER + config.file;
 var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.Database(volume_file);
-var CREATE_SQL = "create table if not exists QUEUE_VOLUME (\n"
-    CREATE_SQL += "ID INTEGER PRIMARY KEY ASC, \n"
-    CREATE_SQL += " CMD TEXT,\n"
-    CREATE_SQL += " CONTENT_TYPE TEXT,\n"
-    CREATE_SQL += " USER_ID TEXT,\n"
-    CREATE_SQL += " DATA TEXT,\n"
-    CREATE_SQL += " CREATED INTEGER\n"
-    CREATE_SQL += " )";
-var CREATE_META_SQL = "create table if not exists QUEUE_META (\n"
-    CREATE_META_SQL += "    ID text PRIMARY KEY,\n"
-    CREATE_META_SQL += "    LAST_RECORD int\n"
-    CREATE_META_SQL += ")";
-
-var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? order by ID asc limit 10";
-var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
-var INSERT_META_SQL = "insert into QUEUE_META values(?, 0)";
-var UPDATE_META_SQL = "update QUEUE_META set LAST_RECORD=? where ID=?";
 var processing = false; // if message loop is processing
-/**
- * if last update rows != 0, then keep going.
- *
- */
-var loop_scan_message = function(){
-    if (processing) {
-        console.log('i am processing');
-        return;
-    }
-    processing = true;
-    var finish_callback = function(rows){
-        console.log('finish callback');
-        if (rows != 0) {
-            get_last_record_and_loop_message(arguments.callee /* finish_callback*/);
-        } else {
-            console.log('end loop');
-            processing = false;
-        }
-    };
-    get_last_record_and_loop_message(finish_callback);
-}
 
 /**
  * loop message from sql
@@ -91,7 +54,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
                 if (consume_status) {
                     console.log('consume success');
                     db.serialize(function() {
-                        db.run(UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
+                        db.run(sql.UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
                     });
                     arguments.callee.caller.caller(); /* recursive sequence_task() */
                 }else{
@@ -118,7 +81,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
      *
      */
     var loop_message = function(last_record){
-        db.each(SELECT_SQL, [last_record], function(err, row){
+        db.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
             update_cnt++;
             console.log('push id ' + row.ID);
@@ -129,10 +92,10 @@ var get_last_record_and_loop_message = function(finish_callback) {
      * get last record and start loop message.
      *
      */
-    db.get(SELECT_META_SQL, [config.index],function(error, row) {
+    db.get(sql.SELECT_META_SQL, [config.index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
-            db.run(INSERT_META_SQL, [config.index], function(){
+            db.run(sql.INSERT_META_SQL, [config.index], function(){
                 console.log("insert meta done");    
                 loop_message(0);
             });
@@ -144,21 +107,32 @@ var get_last_record_and_loop_message = function(finish_callback) {
 }
 
 /**
- * init tables
- */
-var init_db = function(){
-    db.serialize(function() {
-        db.run(CREATE_SQL);
-        db.run(CREATE_META_SQL);
-        start_run();
-    });
-}
-
-/**
- * start watch db file 
+ * if last update rows != 0, then keep going.
  *
  */
-var start_run = function(last_record){
+var loop_scan_message = function(){
+    if (processing) {
+        console.log('i am processing');
+        return;
+    }
+    processing = true;
+    var finish_callback = function(rows){
+        console.log('finish callback');
+        if (rows != 0) {
+            get_last_record_and_loop_message(arguments.callee /* finish_callback*/);
+        } else {
+            console.log('end loop');
+            processing = false;
+        }
+    };
+    get_last_record_and_loop_message(finish_callback);
+};
+
+/**
+ * start watch db file  -> loop_scan_message
+ *
+ */
+var watchfile= function(){
     console.log("watching " + volume_file);
     loop_scan_message();
     fs.watchFile(volume_file, function(curr,prev) {
@@ -171,5 +145,20 @@ var start_run = function(last_record){
     });
 }
 
+/**
+ * init tables -> watchfile 
+ */
+var init_db = function(){
+    db.serialize(function() {
+        db.run(sql.CREATE_SQL);
+        db.run(sql.CREATE_META_SQL);
+        watchfile();
+    });
+};
+
+/**
+ * main 
+ *
+ */
 init_db();
 //db.close();
