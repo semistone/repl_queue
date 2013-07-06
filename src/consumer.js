@@ -42,6 +42,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
      *
      */
     var each_complete_callback = function(err, rows){
+        var event_emitter = new emitter();
         var sequence_task = function() {
             console.log('next task size ' + working_queue.length);
             if (working_queue.length == 0) { // all task done
@@ -57,7 +58,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
                     db.serialize(function() {
                         db.run(sql.UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
                     });
-                    arguments.callee.caller.caller(); /* recursive sequence_task() */
+                    event_emitter.emit('next');
                 }else{
                     console.log('consume false');
                     retry++;
@@ -68,6 +69,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
                 }
             });
         };
+        event_emitter.on('next', sequence_task);
         if (rows == 0) {
             console.log('empty rows');
             finish_callback(rows);
