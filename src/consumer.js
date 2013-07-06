@@ -1,19 +1,20 @@
-var DELIMITER = '/';
-var fs = require('fs');
-var sql = require('./sql.js');
-var config = {
-    path: '.',
-    file: 'test.db',
-    consume_msg_callback: function(row, callback){
-        console.log('consume:' + row.ID + " data:" + row.DATA);
-        callback(true);
-    },
-    index: 1  
-}
-var volume_file = config.path + DELIMITER + config.file;
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database(volume_file);
-var processing = false; // if message loop is processing
+var fs = require('fs'),
+    sqlite3 = require('sqlite3').verbose(),
+    sql = require('./sql.js'),
+    emitter = require('events').EventEmitter,
+    config = {
+        path: '.',
+        file: 'test.db',
+        consume_msg_callback: function(row, callback){
+            console.log('consume:' + row.ID + " data:" + row.DATA);
+            callback(true);
+        },
+        index: 1  
+    };
+var DELIMITER = '/',
+    volume_file = config.path + DELIMITER + config.file,
+    db = new sqlite3.Database(volume_file),
+    processing = false; // if message loop is processing
 
 /**
  * loop message from sql
@@ -111,20 +112,28 @@ var get_last_record_and_loop_message = function(finish_callback) {
  *
  */
 var loop_scan_message = function(){
+    var finish_event_emitter = new emitter(),
+        finish_callback,
+        processing;
+
     if (processing) {
         console.log('i am processing');
         return;
     }
     processing = true;
-    var finish_callback = function(rows){
+    finish_callback = function(rows){
         console.log('finish callback');
         if (rows != 0) {
-            get_last_record_and_loop_message(arguments.callee /* finish_callback*/);
+            get_last_record_and_loop_message(function(rows){
+                console.log('emit finish event');
+                finish_event_emitter.emit('finish', rows);         
+            });
         } else {
             console.log('end loop');
             processing = false;
         }
     };
+    finish_event_emitter.addListener('finish', finish_callback);
     get_last_record_and_loop_message(finish_callback);
 };
 
