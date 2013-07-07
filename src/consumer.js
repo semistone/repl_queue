@@ -16,11 +16,10 @@ var DELIMITER = '/',
  */
 var get_last_record_and_loop_message = function(finish_callback) {
     var last_update_rows = 0;
-    var update_cnt = 0;
-    var task_complete_callback = function(rows){
-        last_update_rows = rows;
-    };
     var working_queue = [];
+    /**
+     * use fifo sub module to consume working queue.
+     */
     var each_complete_callback = fifo(working_queue, config, finish_callback);
 
     /**
@@ -30,7 +29,6 @@ var get_last_record_and_loop_message = function(finish_callback) {
     var loop_message = function(last_record){
         volume.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
-            update_cnt++;
             console.log('push id ' + row.ID);
         }, each_complete_callback);
     };
