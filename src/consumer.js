@@ -5,7 +5,6 @@ var fs = require('fs'),
     fifo = require('./fifo.js'),
     config = {
         path: '.',
-        file: 'test.db',
         consume_msg_callback: function(row, callback){
             console.log('consume:' + row.ID + " data:" + row.DATA);
             callback(true);
@@ -13,8 +12,9 @@ var fs = require('fs'),
         index: 1  
     };
 var DELIMITER = '/',
-    volume_file = config.path + DELIMITER + config.file,
-    db = new sqlite3.cached.Database(volume_file),
+    volume_file = config.path + DELIMITER + 'volume.db',
+    volume = new sqlite3.cached.Database(config.path + DELIMITER + 'volume.db'),
+    meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
     processing = false; // if message loop is processing
 
 /**
@@ -34,7 +34,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
      *
      */
     var loop_message = function(last_record){
-        db.each(sql.SELECT_SQL, [last_record], function(err, row){
+        volume.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
             update_cnt++;
             console.log('push id ' + row.ID);
@@ -45,10 +45,10 @@ var get_last_record_and_loop_message = function(finish_callback) {
      * get last record and start loop message.
      *
      */
-    db.get(sql.SELECT_META_SQL, [config.index],function(error, row) {
+    meta.get(sql.SELECT_META_SQL, [config.index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
-            db.run(sql.INSERT_META_SQL, [config.index], function(){
+            meta.run(sql.INSERT_META_SQL, [config.index], function(){
                 console.log("insert meta done");    
                 loop_message(0);
             });
@@ -80,7 +80,7 @@ var loop_scan_message = function(){
                 finish_event_emitter.emit('finish', rows);         
             });
         } else {
-            console.log('end loop');
+            console.log('end scan message and stop processing');
             processing = false;
         }
     };
@@ -109,11 +109,9 @@ var watchfile= function(){
  * init tables -> watchfile 
  */
 var init_db = function(){
-    db.serialize(function() {
-        db.run(sql.CREATE_SQL);
-        db.run(sql.CREATE_META_SQL);
-        watchfile();
-    });
+    volume.run(sql.CREATE_SQL);
+    meta.run(sql.CREATE_META_SQL);
+    watchfile();
 };
 
 /**

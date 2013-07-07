@@ -12,9 +12,8 @@ var DELIMITER = '/';
  */
 var fifo = function(working_queue, config, finish_callback){
     var consume_task = config.consume_msg_callback,
-        volume_file = config.path + DELIMITER + config.file;
-    var db = new sqlite3.cached.Database(volume_file);
-    var queue_size = 0,
+        meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
+        queue_size = 0,
         update_cnt = 0;
 
     /**
@@ -56,8 +55,8 @@ var fifo = function(working_queue, config, finish_callback){
                 if (consume_status) {
                     console.log('consume success');
                     retry = 0; // reset retry
-                    db.serialize(function() {
-                        db.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
+                    meta.serialize(function() {
+                        meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
                             if (update_meta_finish()){ // has next
                                 event_emitter.emit('next');
                             }
