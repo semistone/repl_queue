@@ -1,4 +1,6 @@
-var  sql = require('./sql.js');
+var  sql = require('./sql.js'),
+     sqlite3 = require('sqlite3').verbose();
+
 /**
  * Fifo consume
  * @args working_queue Array
@@ -6,27 +8,43 @@ var  sql = require('./sql.js');
  *
  * @return each_complete_callback
  */
-function filo(working_queue, consume_task, finish_callback, db){
+var fifo = function(working_queue, config, finish_callback){
+    var consume_task = config.consume_msg_callback,
+        volume_file = config.path + DELIMITER + config.file;
+    var db = new sqlite3.cached.Database(volume_file);
+    var queue_size = 0,
+        update_cnt = 0;
+
     /**
-     * call when sqlite each loop finish.
+     * call when task finish and update meta finish
      *
      */
-    var queue_size;
-    var update_cnt = 0;
     var update_meta_finish = function(){
         console.log('update meta finish');
         update_cnt--;
-        if (complete && update_cnt == 0) {
-            finish_callback(last_update_rows);    
+        if (update_cnt == 0) {
+            finish_callback(queue_size);    
+            return false;
         }
+        return true;
     };
+    
+    /**
+     * db.each(select)'s callback function
+     *
+     */
     var each_complete_callback = function(err, rows){
         var event_emitter = new emitter();
-        update_cnt = rows;
+        console.log('size is ' + rows);
+        queue_size = update_cnt = rows;
+        if (rows == 0) { // check empty result.
+            console.log('empty rows');
+            finish_callback(rows);
+            return;
+        }
         var sequence_task = function() {
             console.log('next task size ' + working_queue.length);
             if (working_queue.length == 0) { // all task done
-                task_complete_callback(queue_size);
                 return;
             }
             var row = working_queue.shift();
@@ -35,10 +53,12 @@ function filo(working_queue, consume_task, finish_callback, db){
             consume_task(row, function(consume_status){ // do consume
                 if (consume_status) {
                     console.log('consume success');
+                    retry = 0; // reset retry
                     db.serialize(function() {
                         db.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
-                            update_meta_finish();
-                            event_emitter.emit('next');
+                            if (update_meta_finish()){ // has next
+                                event_emitter.emit('next');
+                            }
                         });
                     });
                 }else{
@@ -47,20 +67,12 @@ function filo(working_queue, consume_task, finish_callback, db){
                     if (retry > 3) {
                         throw new Exception('retry to many times');
                     }
-                    consume_task(row, arguments.callee); // function(consume_status) itself
+                    // to do must sleep interval
+                    consume_task(row, arguments.callee); // callee = function(consume_status) itself
                 }
             });
         };
-        if (rows == 0) {
-            console.log('empty rows');
-            finish_callback(rows);
-        }
         event_emitter.on('next', sequence_task);
-        //
-        //
-        //
-        queue_size = working_queue.length;
-        console.log('size is ' + queue_size);
         sequence_task(); 
     };
 

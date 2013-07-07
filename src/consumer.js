@@ -13,7 +13,7 @@ var fs = require('fs'),
     };
 var DELIMITER = '/',
     volume_file = config.path + DELIMITER + config.file,
-    db = new sqlite3.Database(volume_file),
+    db = new sqlite3.cached.Database(volume_file),
     processing = false; // if message loop is processing
 
 /**
