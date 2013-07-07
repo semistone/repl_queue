@@ -13,6 +13,9 @@ config = {
              callback(true);}
         }
     ],
+    writer: {
+        listen: 9090
+    },
     consume_msg_callback: function(row, callback){
         console.log('consume:' + row.ID + " data:" + row.DATA);
         callback(true);

@@ -14,7 +14,7 @@ var fifo = function(working_queue, config, finish_callback){
     var consume_task = config.consume_msg_callback,
         meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
         queue_size = 0,
-        update_cnt = 0;
+        remain_cnt = 0;
 
     /**
      * call when task finish and update meta finish
@@ -22,8 +22,8 @@ var fifo = function(working_queue, config, finish_callback){
      */
     var update_meta_finish = function(){
         console.log('update meta finish');
-        update_cnt--;
-        if (update_cnt == 0) {
+        remain_cnt--;
+        if (remain_cnt == 0) {
             finish_callback(queue_size);    
             return false;
         }
@@ -37,7 +37,7 @@ var fifo = function(working_queue, config, finish_callback){
     var each_complete_callback = function(err, rows){
         var event_emitter = new emitter();
         console.log('size is ' + rows);
-        queue_size = update_cnt = rows;
+        queue_size = remain_cnt = rows;
         if (rows == 0) { // check empty result.
             console.log('empty rows');
             finish_callback(rows);

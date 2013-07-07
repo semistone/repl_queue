@@ -11,6 +11,7 @@ var CREATE_META_SQL = "create table if not exists QUEUE_META (\n"
     CREATE_META_SQL += "    LAST_RECORD int\n"
     CREATE_META_SQL += ")";
 
+var INSERT_VOLUME_SQL = "insert into QUEUE_VOLUME (CMD, DATA, CREATED) values(?, ?, ?)";
 var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? order by ID asc limit 10";
 var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
 var INSERT_META_SQL = "insert into QUEUE_META values(?, 0)";
@@ -21,5 +22,6 @@ module.exports = {
     SELECT_SQL: SELECT_SQL,
     SELECT_META_SQL: SELECT_META_SQL,
     INSERT_META_SQL: INSERT_META_SQL,
-    UPDATE_META_SQL: UPDATE_META_SQL
+    UPDATE_META_SQL: UPDATE_META_SQL,
+    INSERT_VOLUME_SQL: INSERT_VOLUME_SQL 
 };
