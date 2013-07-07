@@ -1,5 +1,5 @@
 config = {
-    path: '.',
+    path: './example',
     consume_msg_callback: function(row, callback){
         console.log('consume:' + row.ID + " data:" + row.DATA);
         callback(true);

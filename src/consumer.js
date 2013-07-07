@@ -3,7 +3,7 @@ var fs = require('fs'),
     sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
     fifo = require('./fifo.js'),
-    config = require('./config.js');
+    config = require('./example/config.js');
 
 var DELIMITER = '/',
     volume_file = config.path + DELIMITER + 'volume.db',
