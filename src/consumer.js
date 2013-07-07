@@ -56,9 +56,11 @@ var get_last_record_and_loop_message = function(finish_callback) {
                 if (consume_status) {
                     console.log('consume success');
                     db.serialize(function() {
-                        db.run(sql.UPDATE_META_SQL, [row.ID, config.index], update_meta_finish);
+                        db.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
+                            update_meta_finish();
+                            event_emitter.emit('next');
+                        });
                     });
-                    event_emitter.emit('next');
                 }else{
                     console.log('consume false');
                     retry++;
