@@ -3,14 +3,8 @@ var fs = require('fs'),
     sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
     fifo = require('./fifo.js'),
-    config = {
-        path: '.',
-        consume_msg_callback: function(row, callback){
-            console.log('consume:' + row.ID + " data:" + row.DATA);
-            callback(true);
-        },
-        index: 1  
-    };
+    config = require('./config.js');
+
 var DELIMITER = '/',
     volume_file = config.path + DELIMITER + 'volume.db',
     volume = new sqlite3.cached.Database(config.path + DELIMITER + 'volume.db'),
