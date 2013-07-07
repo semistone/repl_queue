@@ -1,5 +1,7 @@
-var  sql = require('./sql.js'),
-     sqlite3 = require('sqlite3').verbose();
+var sql = require('./sql.js'),
+    emitter = require('events').EventEmitter,
+    sqlite3 = require('sqlite3').verbose();
+var DELIMITER = '/';
 
 /**
  * Fifo consume
@@ -80,4 +82,4 @@ var fifo = function(working_queue, config, finish_callback){
 
 };
 
-module.exports.fifo = fifo;
+module.exports = fifo;

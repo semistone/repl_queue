@@ -1,7 +1,8 @@
 var fs = require('fs'),
+    emitter = require('events').EventEmitter,
     sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
-    emitter = require('events').EventEmitter,
+    fifo = require('./fifo.js'),
     config = {
         path: '.',
         file: 'test.db',
@@ -22,65 +23,12 @@ var DELIMITER = '/',
 var get_last_record_and_loop_message = function(finish_callback) {
     var last_update_rows = 0;
     var update_cnt = 0;
-    var complete = false; // complete loop
     var task_complete_callback = function(rows){
         last_update_rows = rows;
-        complete = true;
-    };
-    var queue_size;
-    var update_meta_finish = function(){
-        console.log('update meta finish');
-        update_cnt--;
-        if (complete && update_cnt == 0) {
-            finish_callback(last_update_rows);    
-        }
     };
     var working_queue = [];
+    var each_complete_callback = fifo(working_queue, config, finish_callback);
 
-    /**
-     * call when sqlite each loop finish.
-     *
-     */
-    var each_complete_callback = function(err, rows){
-        var event_emitter = new emitter();
-        var sequence_task = function() {
-            console.log('next task size ' + working_queue.length);
-            if (working_queue.length == 0) { // all task done
-                task_complete_callback(queue_size);
-                return;
-            }
-            var row = working_queue.shift();
-            console.log('consume row ' + row.ID);
-            var retry = 0;
-            config.consume_msg_callback(row, function(consume_status){ // do consume
-                if (consume_status) {
-                    console.log('consume success');
-                    db.serialize(function() {
-                        db.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
-                            update_meta_finish();
-                            event_emitter.emit('next');
-                        });
-                    });
-                }else{
-                    console.log('consume false');
-                    retry++;
-                    if (retry > 3) {
-                        throw new Exception('retry to many times');
-                    }
-                    config.consume_msg_callback(row, arguments.callee);
-                }
-            });
-        };
-        event_emitter.on('next', sequence_task);
-        if (rows == 0) {
-            console.log('empty rows');
-            finish_callback(rows);
-        }
-        queue_size = working_queue.length;
-        console.log('size is ' + queue_size);
-        sequence_task(); 
-    };
-    
     /**
      * loop message
      *
@@ -117,8 +65,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
  */
 var loop_scan_message = function(){
     var finish_event_emitter = new emitter(),
-        finish_callback,
-        processing;
+        finish_callback;
 
     if (processing) {
         console.log('i am processing');
@@ -129,7 +76,7 @@ var loop_scan_message = function(){
         console.log('finish callback');
         if (rows != 0) {
             get_last_record_and_loop_message(function(rows){
-                console.log('emit finish event');
+                console.log('emit finish event, last loop consume rows '+rows);
                 finish_event_emitter.emit('finish', rows);         
             });
         } else {
