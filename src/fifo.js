@@ -6,12 +6,12 @@ var DELIMITER = '/';
 /**
  * Fifo consume
  * @args working_queue Array
- * @args consume_task  Function
+ * @args config Object
  *
  * @return each_complete_callback
  */
 var fifo = function(working_queue, config, finish_callback){
-    var consume_task = config.consume_msg_callback,
+    var consumer_function = config.consumer_function,
         meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
         queue_size = 0,
         remain_cnt = 0;
@@ -51,7 +51,7 @@ var fifo = function(working_queue, config, finish_callback){
             var row = working_queue.shift();
             console.log('consume row ' + row.ID);
             var retry = 0;
-            consume_task(row, function(consume_status){ // do consume
+            consumer_function(row, function(consume_status){ // do consume
                 if (consume_status) {
                     console.log('consume success');
                     retry = 0; // reset retry
@@ -69,7 +69,7 @@ var fifo = function(working_queue, config, finish_callback){
                         throw new Exception('retry to many times');
                     }
                     // to do must sleep interval
-                    consume_task(row, arguments.callee); // callee = function(consume_status) itself
+                    consumer_function(row, arguments.callee); // callee = function(consume_status) itself
                 }
             });
         };
