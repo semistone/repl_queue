@@ -15,6 +15,7 @@ if (config.writer == undefined) {
 var volume = new sqlite3.cached.Database(config.path + '/volume.db');
 http.createServer(function (req, res){
     if (req.method == 'POST') {
+        console.log('new request');
         var body = '';
         var cmd = req.url.substring(1);
         req.on('data', function (data) {
@@ -28,10 +29,13 @@ http.createServer(function (req, res){
                     console.log('insert result ' + err);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                 } else {
+                    console.log('insert success for cmd:'+cmd);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                 }
                 res.end();
             });
         });
+    }else{
+        console.log('only accept POST method');
     } 
 }).listen(config.writer.listen);

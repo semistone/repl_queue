@@ -1,21 +1,37 @@
 var options,
     url = require('url'),
     http = require('http');
-
+var i = 0;
 /**
  *
  */
 var do_task =  function(row, callback){
-    console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + options.href);
-    var req = http.request(options, function(res) {
+    // for testing 
+    i++;
+    if (i > 10) {
+        callback(false);
+        return;
+    }
+
+    var _options = {
+        protocol: options.protocal,
+        method: 'POST',
+        hostname: options.hostname,
+        port: options.port,
+        path: '/'+row.CMD + row.ID
+    };
+    console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname);
+    var req = http.request(_options, function(res) {
         if (res.statusCode == 200) {
-            console.log('http connected and success');
+            console.log('http rely success for id:"'+row.ID + '"');
             callback(true);
         } else {
-            console.log('http connected and fail');
+            console.log('http rely fail');
             callback(false);
         } 
     });
+    req.write(row.DATA);
+    req.end();
 };
 
 /**
@@ -24,10 +40,8 @@ var do_task =  function(row, callback){
 var rely = function(rely_to){
     console.log('rely to ' + rely_to);
     options = url.parse(rely_to);
-    options.method = 'POST';
     console.log('hostname is ' + options.hostname);
     console.log('port is ' + options.port);
-    console.log('path is ' + options.path);
     return do_task;
 };
 
