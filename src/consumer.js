@@ -98,12 +98,11 @@ var watchfile= function(){
 }
 
 /**
- * init tables -> watchfile 
+ * init tables 
  */
 var init_db = function(){
     volume.run(sql.CREATE_SQL);
     meta.run(sql.CREATE_META_SQL);
-    watchfile();
 };
 
 /**
@@ -111,4 +110,5 @@ var init_db = function(){
  *
  */
 init_db();
+watchfile();
 //db.close();

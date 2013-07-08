@@ -2,7 +2,7 @@
  * simple http to write post body into
  *   sqlite
  *
- *
+ *  todo: authenticate method or acl
  */
 var http = require('http'),
     sqlite3 = require('sqlite3').verbose(),
