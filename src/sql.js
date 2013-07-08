@@ -1,3 +1,7 @@
+/**
+ * sql statment constants
+ *
+ */
 var CREATE_SQL = "create table if not exists QUEUE_VOLUME (\n"
     CREATE_SQL += "ID INTEGER PRIMARY KEY ASC, \n"
     CREATE_SQL += " CMD TEXT,\n"

@@ -1,3 +1,7 @@
+/**
+ * rely consumer
+ *
+ */
 var options,
     url = require('url'),
     http = require('http');
