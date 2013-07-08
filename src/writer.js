@@ -21,20 +21,25 @@ http.createServer(function (req, res){
         req.on('data', function (data) {
             body += data;
         });
-        req.on('end', function () {
-            volume.run(sql.INSERT_VOLUME_SQL,
-                       [cmd, body, new Date().getTime()/1000],
-                       function(err){
-                if (err){
-                    console.log('insert result ' + err);
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                } else {
-                    console.log('insert success for cmd:'+cmd);
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                }
-                res.end();
-            });
-        });
+        /**
+         * call after insert sqlite success.
+         */
+        var insert_callback = function(err){
+            if (err){
+                console.log('insert result ' + err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+            } else {
+                console.log('insert success for cmd:'+cmd);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+            }
+            res.end();
+        };
+        req.on('end', 
+               function (){
+                   volume.run(sql.INSERT_VOLUME_SQL,
+                              [cmd, body, new Date().getTime()/1000],
+                              insert_callback);}
+              );
     }else{
         console.log('only accept POST method');
     } 
