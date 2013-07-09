@@ -12,7 +12,8 @@ if (config.writer == undefined) {
     console.log('writer not exist');
     return;
 }
-var acl = config.writer.acl;
+var acl = config.writer.acl,
+    match = /\/([^\/]*)\/?([^\/]*)/;
 var volume = new sqlite3.cached.Database(config.path + '/volume.db');
 http.createServer(function (req, res){
     if (acl != undefined && acl(req) == false) {
@@ -22,9 +23,11 @@ http.createServer(function (req, res){
         return;
     }
     if (req.method == 'POST') {
-        console.log('new request');
+        console.log('new request ' + req.url);
         var body = '';
-        var cmd = req.url.substring(1);
+        var cmd_and_id = match.exec(req.url);
+        var cmd = cmd_and_id[1];
+        var req_id = cmd_and_id[2];
         req.on('data', function (data) {
             body += data;
         });
@@ -44,7 +47,7 @@ http.createServer(function (req, res){
         req.on('end', 
                function (){
                    volume.run(sql.INSERT_VOLUME_SQL,
-                              [cmd, body, new Date().getTime()/1000],
+                              [req_id, cmd, body, new Date().getTime()/1000],
                               insert_callback);}
               );
     }else{

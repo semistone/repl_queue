@@ -19,12 +19,16 @@ var do_task =  function(row, callback){
         return;
     }
     */
+    var req_id = row.REQUEST_ID;
+    if (!req_id) {
+       req_id = row.ID; 
+    }
     var _options = {
         protocol: options.protocal,
         method: 'POST',
         hostname: options.hostname,
         port: options.port,
-        path: '/' + row.CMD
+        path: '/' + row.CMD + '/' + req_id
     };
     console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname + _options.path);
     var req = http.request(_options, function(res) {
