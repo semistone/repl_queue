@@ -19,9 +19,10 @@ var fifo = function(working_queue, config, finish_callback){
     /**
      * call when task finish and update meta finish
      *
+     * @return has_next
      */
-    var update_meta_finish = function(){
-        console.log('update meta finish');
+    var update_meta_finish = function(row){
+        console.log('update meta finish id:' + row.ID);
         remain_cnt--;
         if (remain_cnt == 0) {
             finish_callback(queue_size);    
@@ -36,13 +37,17 @@ var fifo = function(working_queue, config, finish_callback){
      */
     var each_complete_callback = function(err, rows){
         var event_emitter = new emitter();
-        console.log('size is ' + rows);
+        console.log('select result size is ' + rows);
         queue_size = remain_cnt = rows;
         if (rows == 0) { // check empty result.
             console.log('empty rows');
             finish_callback(rows);
             return;
         }
+        /**
+         * serialize execute task.
+         *
+         */
         var sequence_task = function() {
             console.log('do sequence task, remain task size ' + working_queue.length);
             if (working_queue.length == 0) { // all task done
@@ -60,7 +65,7 @@ var fifo = function(working_queue, config, finish_callback){
                     console.log('consume success for id:' + row.ID);
                     meta.serialize(function() {
                         meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
-                            if (update_meta_finish()){ // has next
+                            if (update_meta_finish(row)){ // has next
                                 event_emitter.emit('next');
                             }
                         });
@@ -78,7 +83,11 @@ var fifo = function(working_queue, config, finish_callback){
             consumer_function(row, consume_result_callback);
         };
         event_emitter.on('next', sequence_task);
-        sequence_task(); 
+        //
+        // emit next event -> sequence_task -> consumer_function
+        // after finish, then invoke finish_callback
+        //
+        event_emitter.emit('next');
     };
 
     return each_complete_callback;

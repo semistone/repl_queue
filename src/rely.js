@@ -33,7 +33,7 @@ var do_task =  function(row, callback){
     console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname + _options.path);
     var req = http.request(_options, function(res) {
         if (res.statusCode == 200) {
-            console.log('http rely success for id:"'+row.ID + '"');
+            console.log('http rely success for id:' + row.ID);
             callback(true);
         } else {
             console.log('http rely fail');

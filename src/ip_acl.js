@@ -1,3 +1,7 @@
+/**
+ * limit ip to access writer 
+ *
+ */
 var _allow_ip;
 var filter = function(req){
     return req.connection.remoteAddress == _allow_ip
