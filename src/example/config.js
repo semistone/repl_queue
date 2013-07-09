@@ -1,4 +1,5 @@
 var rely = require('../rely.js');
+var ip_acl = require('../ip_acl.js');
 config = {
     type: 'fifo',
     path: './example',
@@ -15,6 +16,7 @@ config = {
         }
     ],*/
     writer: {
+        acl: ip_acl('127.0.0.1'),
         listen: 9090
     },
     consumer_function: rely('http://localhost:9090'),

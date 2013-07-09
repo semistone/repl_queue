@@ -12,8 +12,15 @@ if (config.writer == undefined) {
     console.log('writer not exist');
     return;
 }
+var acl = config.writer.acl;
 var volume = new sqlite3.cached.Database(config.path + '/volume.db');
 http.createServer(function (req, res){
+    if (acl != undefined && acl(req) == false) {
+        console.log('access deny');
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end();
+        return;
+    }
     if (req.method == 'POST') {
         console.log('new request');
         var body = '';
@@ -42,5 +49,6 @@ http.createServer(function (req, res){
               );
     }else{
         console.log('only accept POST method');
+        res.end();
     } 
 }).listen(config.writer.listen);
