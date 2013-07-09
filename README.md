@@ -21,13 +21,6 @@ use node.js to monitor sqlite and trigger consummer to consume msg
     )
 
 ### sqlite schema metta.db
-    create table if not exists QUEUE_VOLUME_ATTR(
-        VOLUME int PRIMARY KEY,
-        STATUS int,
-        CNT int,
-        CREATED int,
-        LAST_MODIFIED int
-    )
     create table if not exists QUEUE_META (
         ID text PRIMARY KEY,
         VOLUME int,

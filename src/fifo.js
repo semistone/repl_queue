@@ -44,15 +44,19 @@ var fifo = function(working_queue, config, finish_callback){
             return;
         }
         var sequence_task = function() {
-            console.log('next task size ' + working_queue.length);
+            console.log('do sequence task, remain task size ' + working_queue.length);
             if (working_queue.length == 0) { // all task done
                 return;
             }
             var row = working_queue.shift();
             console.log('consume row ' + row.ID);
             var retry = 0;
-            consumer_function(row, function(consume_status){ // do consume
-                if (consume_status) {
+            /**
+             * consume result callback
+             *
+             */
+            var consume_result_callback = function(consume_status){ // do consume
+                if (consume_status) { // task done and success
                     console.log('consume success');
                     retry = 0; // reset retry
                     meta.serialize(function() {
@@ -62,8 +66,8 @@ var fifo = function(working_queue, config, finish_callback){
                             }
                         });
                     });
-                }else{
-                    console.log('consume false');
+                }else{ // task fail
+                    console.log('consume false retry:' + retry + ' for id:' + row.ID );
                     retry++;
                     if (retry > 3) {
                         throw new Exception('retry to many times');
@@ -71,7 +75,8 @@ var fifo = function(working_queue, config, finish_callback){
                     // to do must sleep interval
                     consumer_function(row, arguments.callee); // callee = function(consume_status) itself
                 }
-            });
+            };
+            consumer_function(row, consume_result_callback);
         };
         event_emitter.on('next', sequence_task);
         sequence_task(); 

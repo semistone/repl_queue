@@ -5,6 +5,7 @@
 var options,
     url = require('url'),
     http = require('http');
+var SOCKET_TIMEOUT = 2000;
 //var i = 0;
 /**
  *
@@ -34,6 +35,10 @@ var do_task =  function(row, callback){
             console.log('http rely fail');
             callback(false);
         } 
+    });
+    req.setTimeout(SOCKET_TIMEOUT, function(){
+        console.log('http connected and timeout');
+        callback(false);
     });
     req.write(row.DATA);
     req.end();
