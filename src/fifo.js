@@ -57,8 +57,7 @@ var fifo = function(working_queue, config, finish_callback){
              */
             var consume_result_callback = function(consume_status){ // do consume
                 if (consume_status) { // task done and success
-                    console.log('consume success');
-                    retry = 0; // reset retry
+                    console.log('consume success for id:' + row.ID);
                     meta.serialize(function() {
                         meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
                             if (update_meta_finish()){ // has next

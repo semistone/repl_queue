@@ -37,7 +37,7 @@ var do_task =  function(row, callback){
         } 
     });
     req.setTimeout(SOCKET_TIMEOUT, function(){
-        console.log('http connected and timeout');
+        console.log('http connected and timeout for id:' + row.ID);
         callback(false);
     });
     req.write(row.DATA);
