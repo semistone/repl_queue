@@ -61,14 +61,13 @@ var fifo = function(working_queue, config, finish_callback){
              *
              */
             var consume_result_callback = function(consume_status){ // do consume
+                var self = arguments.callee;
                 if (consume_status) { // task done and success
                     console.log('consume success for id:' + row.ID);
-                    meta.serialize(function() {
-                        meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
-                            if (update_meta_finish(row)){ // has next
-                                event_emitter.emit('next');
-                            }
-                        });
+                    meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
+                        if (update_meta_finish(row)){ // has next
+                            event_emitter.emit('next');
+                        }
                     });
                 }else{ // task fail
                     console.log('consume false retry:' + retry + ' for id:' + row.ID );
@@ -76,8 +75,12 @@ var fifo = function(working_queue, config, finish_callback){
                     if (retry > 3) {
                         throw new Exception('retry to many times');
                     }
-                    // to do must sleep interval
-                    consumer_function(row, arguments.callee); // callee = function(consume_status) itself
+                    //
+                    // delay call
+                    //
+                    setTimeout(function(){
+                        consumer_function(row, self); // self = function(consume_status) itself
+                    }, 3000)
                 }
             };
             consumer_function(row, consume_result_callback);

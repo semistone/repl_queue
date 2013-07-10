@@ -31,30 +31,31 @@ var do_task =  function(row, callback){
         agent: agent,
         hostname: options.hostname,
         port: options.port,
+        heads:{
+            'Connection': 'Keep-Alive'
+        },
         path: '/' + row.CMD + '/' + req_id
     };
     console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname + _options.path);
     var req = http.request(_options, function(res) {
-        var result = undefined;
         if (res.statusCode == 200) {
-            result =true;
+            console.log('http rely success for id:' + row.ID);
+            callback(true);
         } else {
-            result = false;
+            console.log('http rely fail');
+            callback(false);
         }
         res.on('data', function(data){
         }); 
-        res.on('end', function(){
-            if(result){
-                console.log('http rely success for id:' + row.ID);
-            }else{
-                console.log('http rely fail');
-            }
-            callback(result);
-        }); 
+        res.on('end', function(){}); 
     });
-    req.setSocketKeepAlive(true);
+    req.setSocketKeepAlive(true, 1000);
     req.setTimeout(SOCKET_TIMEOUT, function(){
         console.log('http connected and timeout for id:' + row.ID);
+        callback(false);
+    });
+    req.on('error', function(){
+        console.log('request error for id:' + row.ID);
         callback(false);
     });
     req.write(row.DATA);
