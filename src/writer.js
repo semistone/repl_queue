@@ -52,6 +52,7 @@ http.createServer(function (req, res){
               );
     }else{
         console.log('only accept POST method');
+        res.writeHead(405, { 'Content-Type': 'application/json' });
         res.end();
     } 
 }).listen(config.writer.listen);
