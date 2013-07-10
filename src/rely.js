@@ -27,6 +27,7 @@ var do_task =  function(row, callback){
         protocol: options.protocal,
         method: 'POST',
         hostname: options.hostname,
+        agent: false, // can not reuse socket ... may fix later.
         port: options.port,
         path: '/' + row.CMD + '/' + req_id
     };
