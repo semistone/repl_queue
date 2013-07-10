@@ -4,18 +4,15 @@ var ip_acl = require('../ip_acl.js');
 config = {
     type: 'fifo',
     path: './example',
-    /*consumers: [
-        {index: 1,       
-         consumer_function: function(row, callback){
-             console.log('consume:' + row.ID + " data:" + row.DATA);
-             callback(true);}
+    /*
+    reader:{
+        '1':{ // index
+            consumer_function: dist('./example/volume2.db')
         },
-        {index: 2,       
-         consumer_function: function(row, callback){
-             console.log('consume:' + row.ID + " data:" + row.DATA);
-             callback(true);}
+        '2':{// index
+            consumer_function: rely('http://localhost:9090')
         }
-    ],*/
+    },*/
     writer: {
         acl: ip_acl('127.0.0.1'),
         listen: 9090
