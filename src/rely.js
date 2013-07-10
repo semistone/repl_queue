@@ -5,6 +5,8 @@
 var options,
     url = require('url'),
     http = require('http');
+var agent = new http.Agent;
+    agent.maxSockets = 1;
 var SOCKET_TIMEOUT = 2000;
 //var i = 0;
 /**
@@ -26,21 +28,31 @@ var do_task =  function(row, callback){
     var _options = {
         protocol: options.protocal,
         method: 'POST',
+        agent: agent,
         hostname: options.hostname,
-        agent: false, // can not reuse socket ... may fix later.
         port: options.port,
         path: '/' + row.CMD + '/' + req_id
     };
     console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname + _options.path);
     var req = http.request(_options, function(res) {
+        var result = undefined;
         if (res.statusCode == 200) {
-            console.log('http rely success for id:' + row.ID);
-            callback(true);
+            result =true;
         } else {
-            console.log('http rely fail');
-            callback(false);
-        } 
+            result = false;
+        }
+        res.on('data', function(data){
+        }); 
+        res.on('end', function(){
+            if(result){
+                console.log('http rely success for id:' + row.ID);
+            }else{
+                console.log('http rely fail');
+            }
+            callback(result);
+        }); 
     });
+    req.setSocketKeepAlive(true);
     req.setTimeout(SOCKET_TIMEOUT, function(){
         console.log('http connected and timeout for id:' + row.ID);
         callback(false);
