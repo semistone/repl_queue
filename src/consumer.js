@@ -16,11 +16,11 @@ var DELIMITER = '/',
  */
 var get_last_record_and_loop_message = function(index, finish_callback) {
     var last_update_rows = 0;
-    var working_queue = [];
+    var working_queue = [], self = this;
     /**
      * use fifo sub module to consume working queue.
      */
-    var each_complete_callback = new fifo.each_complete_callback(working_queue, config, index, finish_callback);
+    this.each_complete_callback = new fifo.each_complete_callback(working_queue, config, index, finish_callback); 
 
     /**
      * loop message
@@ -30,7 +30,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {
         volume.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
             console.log('push id ' + row.ID);
-        }, each_complete_callback);
+        }, self.each_complete_callback);
     };
 
     /**
@@ -57,7 +57,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {
  */
 var loop_scan_message = function(){
     var finish_event_emitter = new emitter(),
-        finish_callback;
+        finish_callback, self = this;
 
     if (this.processing) {
         console.log('i am processing');
@@ -71,7 +71,7 @@ var loop_scan_message = function(){
             return;
         }
         if (rows != 0) {
-            get_last_record_and_loop_message(this.index, function(rows){
+            self.get_last_record_and_loop_message(self.index, function(rows){
                 console.log('emit finish event, last loop consume rows '+rows);
                 finish_event_emitter.emit('finish', rows);         
             });
@@ -81,7 +81,7 @@ var loop_scan_message = function(){
         }
     };
     finish_event_emitter.addListener('finish', finish_callback);
-    get_last_record_and_loop_message(this.index, finish_callback);
+    this.get_last_record_and_loop_message(this.index, finish_callback);
 };
 
 var index_handler = function(index){
@@ -89,6 +89,7 @@ var index_handler = function(index){
     this.index = index;
     console.log(loop_scan_message);
     index_handler.prototype.loop_scan_message = loop_scan_message;
+    index_handler.prototype.get_last_record_and_loop_message = get_last_record_and_loop_message;
 }
 /**
  * start watch db file  -> loop_scan_message
