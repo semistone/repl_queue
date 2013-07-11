@@ -45,7 +45,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {
                 loop_message(0);
             });
         } else {
-            console.log('last record is ' + row.LAST_RECORD);
+            console.log('last record for ' + index +' is ' + row.LAST_RECORD);
             loop_message(row.LAST_RECORD);
         }
     });
@@ -77,7 +77,7 @@ var loop_scan_message = function(){
             });
         } else {
             console.log('end scan message and stop processing');
-            this.processing = false;
+            self.processing = false;
         }
     };
     finish_event_emitter.addListener('finish', finish_callback);
@@ -87,7 +87,6 @@ var loop_scan_message = function(){
 var index_handler = function(index){
     this.processing = false; // if message loop is processing
     this.index = index;
-    console.log(loop_scan_message);
     index_handler.prototype.loop_scan_message = loop_scan_message;
     index_handler.prototype.get_last_record_and_loop_message = get_last_record_and_loop_message;
 }
