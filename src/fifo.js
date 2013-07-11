@@ -120,7 +120,7 @@ var kill = function(callback){
     var cnt = fifos.length;
     for(i in fifos){
         if (!fifos[i].processing) {
-            console.log('fifo task not processing' + f);
+            console.log('fifo task not processing');
             cnt--;
             if(cnt == 0){
                 callback();
