@@ -3,7 +3,7 @@ var sql = require('./sql.js'),
     sqlite3 = require('sqlite3').verbose();
 var DELIMITER = '/';
 var killed = false;
-var processing = false;
+var fifos = []
 /**
  * Fifo consume
  * @args working_queue Array
@@ -11,8 +11,12 @@ var processing = false;
  *
  * @return each_complete_callback
  */
-var fifo = function(working_queue, config, finish_callback){
-    var consumer_function = config.consumer_function,
+var fifo = function(working_queue, config, index, finish_callback){
+    this.processing = false;
+    fifos.push(this);
+    var self = this;
+    console.log('index is ' + index);
+    var consumer_function = config.reader[index].consumer_function,
         meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
         queue_size = 0,
         remain_cnt = 0;
@@ -29,7 +33,7 @@ var fifo = function(working_queue, config, finish_callback){
         remain_cnt--;
         if (remain_cnt == 0) {
             finish_callback(queue_size);    
-            processing = false;
+            self.processing = false;
             return false;
         }
         return true;
@@ -41,14 +45,14 @@ var fifo = function(working_queue, config, finish_callback){
      *
      */
     var each_complete_callback = function(err, rows){
-        processing = true;
+        self.processing = true;
         var event_emitter = new emitter();
         console.log('select result size is ' + rows);
         queue_size = remain_cnt = rows;
         if (rows == 0) { // check empty result.
             console.log('empty rows');
             finish_callback(rows);
-            processing = false;
+            self.processing = false;
             return;
         }
          
@@ -78,7 +82,7 @@ var fifo = function(working_queue, config, finish_callback){
                 var self = arguments.callee;
                 if (consume_status) { // task done and success
                     console.log('consume success for id:' + row.ID);
-                    meta.run(sql.UPDATE_META_SQL, [row.ID, config.index], function(){
+                    meta.run(sql.UPDATE_META_SQL, [row.ID, index], function(){
                         if (update_meta_finish(row)){ // has next
                             event_emitter.emit('next');
                         }
@@ -113,10 +117,23 @@ var fifo = function(working_queue, config, finish_callback){
 
 var kill = function(callback){
     console.log('kill fifo');
-    killed = callback;
-    if (!processing) {
-        callback();
+    var cnt = fifos.length;
+    for(i in fifos){
+        if (!fifos[i].processing) {
+            console.log('fifo task not processing' + f);
+            cnt--;
+            if(cnt == 0){
+                callback();
+            }    
+        }
     }
+    killed = function(){
+        console.log('fifo task killed');
+        cnt--;
+        if(cnt == 0){
+            callback();
+        }    
+    };
 }
 module.exports.each_complete_callback = fifo;
 module.exports.kill = kill;

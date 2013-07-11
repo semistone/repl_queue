@@ -9,19 +9,18 @@ var DELIMITER = '/',
     volume_file = config.path + DELIMITER + 'volume.db',
     volume = new sqlite3.cached.Database(config.path + DELIMITER + 'volume.db'),
     meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
-    processing = false; // if message loop is processing
     killed = false; // if kill signal fired, then killed = true
-
+    index_handlers = {};
 /**
  * loop message from sql
  */
-var get_last_record_and_loop_message = function(finish_callback) {
+var get_last_record_and_loop_message = function(index, finish_callback) {
     var last_update_rows = 0;
     var working_queue = [];
     /**
      * use fifo sub module to consume working queue.
      */
-    var each_complete_callback = fifo.each_complete_callback(working_queue, config, finish_callback);
+    var each_complete_callback = new fifo.each_complete_callback(working_queue, config, index, finish_callback);
 
     /**
      * loop message
@@ -38,10 +37,10 @@ var get_last_record_and_loop_message = function(finish_callback) {
      * get last record and start loop message.
      *
      */
-    meta.get(sql.SELECT_META_SQL, [config.index],function(error, row) {
+    meta.get(sql.SELECT_META_SQL, [index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
-            meta.run(sql.INSERT_META_SQL, [config.index], function(){
+            meta.run(sql.INSERT_META_SQL, [index], function(){
                 console.log("insert meta done");    
                 loop_message(0);
             });
@@ -60,11 +59,11 @@ var loop_scan_message = function(){
     var finish_event_emitter = new emitter(),
         finish_callback;
 
-    if (processing) {
+    if (this.processing) {
         console.log('i am processing');
         return;
     }
-    processing = true;
+    this.processing = true;
     finish_callback = function(rows){
         console.log('finish callback');
         if (killed) { // killed signal fired, stop loop.
@@ -72,31 +71,43 @@ var loop_scan_message = function(){
             return;
         }
         if (rows != 0) {
-            get_last_record_and_loop_message(function(rows){
+            get_last_record_and_loop_message(this.index, function(rows){
                 console.log('emit finish event, last loop consume rows '+rows);
                 finish_event_emitter.emit('finish', rows);         
             });
         } else {
             console.log('end scan message and stop processing');
-            processing = false;
+            this.processing = false;
         }
     };
     finish_event_emitter.addListener('finish', finish_callback);
-    get_last_record_and_loop_message(finish_callback);
+    get_last_record_and_loop_message(this.index, finish_callback);
 };
 
+var index_handler = function(index){
+    this.processing = false; // if message loop is processing
+    this.index = index;
+    console.log(loop_scan_message);
+    index_handler.prototype.loop_scan_message = loop_scan_message;
+}
 /**
  * start watch db file  -> loop_scan_message
  *
  */
 var watchfile= function(){
     console.log("watching " + volume_file);
-    loop_scan_message();
+    for(index in config.reader){
+        console.log('loop index ' + index);
+        index_handlers[index] = new index_handler(index);
+        index_handlers[index].loop_scan_message();
+    }
     fs.watchFile(volume_file, function(curr,prev) {
         if (curr.mtime == prev.mtime) {
             console.log("mtime equal");
         } else {
-            loop_scan_message();
+            for(index in index_handlers){
+                index_handlers[index].loop_scan_message();
+            }
             console.log("mtime not equal");
         }   
     });
