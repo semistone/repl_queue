@@ -3,6 +3,7 @@ var sql = require('./sql.js'),
     sqlite3 = require('sqlite3').verbose();
 var DELIMITER = '/';
 var killed = false;
+var processing = false;
 /**
  * Fifo consume
  * @args working_queue Array
@@ -28,24 +29,29 @@ var fifo = function(working_queue, config, finish_callback){
         remain_cnt--;
         if (remain_cnt == 0) {
             finish_callback(queue_size);    
+            processing = false;
             return false;
         }
         return true;
     };
+
     
     /**
      * db.each(select)'s callback function
      *
      */
     var each_complete_callback = function(err, rows){
+        processing = true;
         var event_emitter = new emitter();
         console.log('select result size is ' + rows);
         queue_size = remain_cnt = rows;
         if (rows == 0) { // check empty result.
             console.log('empty rows');
             finish_callback(rows);
+            processing = false;
             return;
         }
+         
         /**
          * serialize execute task.
          *
@@ -106,7 +112,11 @@ var fifo = function(working_queue, config, finish_callback){
 };
 
 var kill = function(callback){
+    console.log('kill fifo');
     killed = callback;
+    if (!processing) {
+        callback();
+    }
 }
 module.exports.each_complete_callback = fifo;
 module.exports.kill = kill;

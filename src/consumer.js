@@ -124,13 +124,13 @@ watchfile();
 var kill = function(){
     console.log('unwatch ' + volume_file);
     fs.unwatchFile(volume_file);
+    killed = true;
     fifo.kill(function(){
         console.log('close volme.db');
         volume.close();
         console.log('close meta.db');
         meta.close();
     });
-    killed = true;
 }
 //db.close();
 
