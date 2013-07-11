@@ -15,7 +15,7 @@ if (config.writer == undefined) {
 var acl = config.writer.acl,
     match = /\/([^\/]*)\/?([^\/]*)/;
 var volume = new sqlite3.cached.Database(config.path + '/volume.db');
-http.createServer(function (req, res){
+var server = http.createServer(function (req, res){
     if (acl != undefined && acl(req) == false) {
         console.log('access deny');
         res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -56,3 +56,23 @@ http.createServer(function (req, res){
         res.end();
     } 
 }).listen(config.writer.listen);
+
+/**
+ * save kill writer
+ *
+ */
+var kill = function(){
+   server.close(function(){
+       console.log('writer listen ' + config.writer.listen + ' killed');
+   }); 
+   volume.close();
+}
+
+process.on('SIGINT', function(){
+   console.log('fire SIGINT in writer');
+   kill();
+});
+process.on('SIGHUP', function(){
+   console.log('fire SIGHUP in writer');
+   kill();
+});

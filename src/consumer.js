@@ -10,6 +10,7 @@ var DELIMITER = '/',
     volume = new sqlite3.cached.Database(config.path + DELIMITER + 'volume.db'),
     meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
     processing = false; // if message loop is processing
+    killed = false; // if kill signal fired, then killed = true
 
 /**
  * loop message from sql
@@ -20,7 +21,7 @@ var get_last_record_and_loop_message = function(finish_callback) {
     /**
      * use fifo sub module to consume working queue.
      */
-    var each_complete_callback = fifo(working_queue, config, finish_callback);
+    var each_complete_callback = fifo.each_complete_callback(working_queue, config, finish_callback);
 
     /**
      * loop message
@@ -66,6 +67,10 @@ var loop_scan_message = function(){
     processing = true;
     finish_callback = function(rows){
         console.log('finish callback');
+        if (killed) { // killed signal fired, stop loop.
+            finish_event_emitter.removeAllListeners();
+            return;
+        }
         if (rows != 0) {
             get_last_record_and_loop_message(function(rows){
                 console.log('emit finish event, last loop consume rows '+rows);
@@ -111,4 +116,30 @@ var init_db = function(){
  */
 init_db();
 watchfile();
+
+/**
+ * save kill writer
+ *
+ */
+var kill = function(){
+    console.log('unwatch ' + volume_file);
+    fs.unwatchFile(volume_file);
+    fifo.kill(function(){
+        console.log('close volme.db');
+        volume.close();
+        console.log('close meta.db');
+        meta.close();
+    });
+    killed = true;
+}
 //db.close();
+
+
+process.on('SIGINT', function(){
+   console.log('fire SIGINT in reader');
+   kill();
+});
+process.on('SIGHUP', function(){
+   console.log('fire SIGHUP in reader');
+   kill();
+});

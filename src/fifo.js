@@ -2,7 +2,7 @@ var sql = require('./sql.js'),
     emitter = require('events').EventEmitter,
     sqlite3 = require('sqlite3').verbose();
 var DELIMITER = '/';
-
+var killed = false;
 /**
  * Fifo consume
  * @args working_queue Array
@@ -15,7 +15,9 @@ var fifo = function(working_queue, config, finish_callback){
         meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
         queue_size = 0,
         remain_cnt = 0;
-
+    if (consumer_function == undefined) {
+        throw new Error('consumer_function is undefined');
+    }
     /**
      * call when task finish and update meta finish
      *
@@ -53,6 +55,12 @@ var fifo = function(working_queue, config, finish_callback){
             if (working_queue.length == 0) { // all task done
                 return;
             }
+            if (killed){
+                console.log('killed signal fired');
+                event_emitter.removeAllListeners();
+                killed();
+                return;
+            }
             var row = working_queue.shift();
             console.log('consume row ' + row.ID);
             var retry = 0;
@@ -73,7 +81,7 @@ var fifo = function(working_queue, config, finish_callback){
                     console.log('consume false retry:' + retry + ' for id:' + row.ID );
                     retry++;
                     if (retry > 3) {
-                        throw new Exception('retry to many times');
+                        throw new Error('retry to many times');
                     }
                     //
                     // delay call
@@ -97,4 +105,8 @@ var fifo = function(working_queue, config, finish_callback){
 
 };
 
-module.exports = fifo;
+var kill = function(callback){
+    killed = callback;
+}
+module.exports.each_complete_callback = fifo;
+module.exports.kill = kill;
