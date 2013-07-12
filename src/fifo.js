@@ -3,7 +3,7 @@ var sql = require('./sql.js'),
     sqlite3 = require('sqlite3').verbose();
 var DELIMITER = '/';
 var killed = false;
-var fifos = []
+var fifos = {}
 /**
  * Fifo consume
  * @args working_queue Array
@@ -13,7 +13,7 @@ var fifos = []
  */
 var fifo = function(working_queue, config, index, finish_callback){
     this.processing = false;
-    fifos.push(this);
+    fifos[index] = this;
     var self = this;
     console.log('index is ' + index);
     var consumer_function = config.reader[index].consumer_function,
@@ -47,7 +47,7 @@ var fifo = function(working_queue, config, index, finish_callback){
     var each_complete_callback = function(err, rows){
         self.processing = true;
         var event_emitter = new emitter();
-        console.log('select result size is ' + rows);
+        console.log('select result size for ' + index + ' is ' + rows);
         queue_size = remain_cnt = rows;
         if (rows == 0) { // check empty result.
             console.log('empty rows');
