@@ -8,14 +8,16 @@ var http = require('http'),
     sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
     config = require('./example/config.js');
-if (config.writer == undefined) {
-    console.log('writer not exist');
-    return;
-}
-var acl = config.writer.acl,
-    match = /\/([^\/]*)\/?([^\/]*)/;
-var volume = new sqlite3.cached.Database(config.path + '/volume.db');
-var server = http.createServer(function (req, res){
+var match = /\/([^\/]*)\/?([^\/]*)/,
+    server,
+    volume = new sqlite3.cached.Database(config.path + '/volume.db');
+
+/*
+ * http request handler
+ *
+ */
+var http_handler = function (req, res){//{{{
+    var acl = config.writer.acl;
     if (acl != undefined && acl(req) == false) {
         console.log('access deny');
         res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -34,7 +36,7 @@ var server = http.createServer(function (req, res){
         /**
          * call after insert sqlite success.
          */
-        var insert_callback = function(err){
+        var insert_callback = function(err){//{{{
             if (err){
                 console.log('insert result ' + err);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -43,7 +45,8 @@ var server = http.createServer(function (req, res){
                 res.writeHead(200, { 'Content-Type': 'application/json' });
             }
             res.end();
-        };
+        };//}}}
+
         req.on('end', 
                function (){
                    volume.run(sql.INSERT_VOLUME_SQL,
@@ -55,24 +58,42 @@ var server = http.createServer(function (req, res){
         res.writeHead(405, { 'Content-Type': 'application/json' });
         res.end();
     } 
-}).listen(config.writer.listen);
+};//}}}
 
 /**
  * save kill writer
  *
  */
-var kill = function(){
+var kill = function(){//{{{
    server.close(function(){
        console.log('writer listen ' + config.writer.listen + ' killed');
    }); 
    volume.close();
-}
+};//}}}
 
-process.on('SIGINT', function(){
-   console.log('fire SIGINT in writer');
-   kill();
-});
-process.on('SIGHUP', function(){
-   console.log('fire SIGHUP in writer');
-   kill();
-});
+/**
+ * binding kill signal
+ *
+ */
+var binding_signal = function(){//{{{
+    process.on('SIGINT', function(){
+       console.log('fire SIGINT in writer');
+       kill();
+    });
+    process.on('SIGHUP', function(){
+       console.log('fire SIGHUP in writer');
+       kill();
+    });
+};//}}}
+
+/**
+ * main
+ */
+(function(){//{{{
+    if (config.writer == undefined) {
+        console.log('writer not exist');
+        return;
+    }
+    server = http.createServer(http_handler).listen(config.writer.listen);
+    binding_signal();
+})()//}}}

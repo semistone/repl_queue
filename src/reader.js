@@ -165,6 +165,8 @@ var binding_signal = function(){//{{{
  * main 
  *
  */
-init_db();
-watchfile();
-binding_signal();
+(function(){//{{{
+    init_db();
+    watchfile();
+    binding_signal();
+})();//}}}
