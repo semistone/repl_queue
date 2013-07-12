@@ -103,6 +103,12 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
                     if (retry > 3) {
                         throw new Error('retry to many times');
                     }
+                    if (killed){
+                        console.log('killed signal fired');
+                        event_emitter.removeAllListeners();
+                        killed();
+                        return;
+                    }
                     //
                     // delay call
                     //

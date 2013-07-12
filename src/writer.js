@@ -5,12 +5,36 @@
  *  todo: authenticate method or acl
  */
 var http = require('http'),
+    socket_io = require('socket.io'),
     sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
-    config = require('./example/config.js');
+    config = require('./example/config.js'),
+    socketlist = [];
 var match = /\/([^\/]*)\/?([^\/]*)/,
     server,
     volume = new sqlite3.cached.Database(config.path + '/volume.db');
+
+/**
+ * socket io handler
+ *
+ */
+var io_handler = function(){//{{{
+    var io = socket_io.listen(server);
+    io.sockets.on('connection', function (socket){
+        console.log('socket connected');
+        socket.on('repl', function(row, insert_callback){
+            volume.run(sql.INSERT_VOLUME_SQL,
+                       [row.ID, row.CMD, row.DATA, new Date().getTime()/1000],
+                       insert_callback);
+        });
+        socketlist.push(socket);
+        socket.on('close', function(){
+            console.log('disconnect');
+            socketlist.splice(socketlist.indexOf(socket), 1);
+        });
+    });
+};//}}}
+
 
 /*
  * http request handler
@@ -67,7 +91,14 @@ var http_handler = function (req, res){//{{{
 var kill = function(){//{{{
    server.close(function(){
        console.log('writer listen ' + config.writer.listen + ' killed');
-   }); 
+   });
+   //
+   // close socket
+   // 
+   socketlist.forEach(function(socket) {
+       console.log('socket disconect');
+       socket.disconnect();
+   });
    volume.close();
 };//}}}
 
@@ -94,6 +125,17 @@ var binding_signal = function(){//{{{
         console.log('writer not exist');
         return;
     }
-    server = http.createServer(http_handler).listen(config.writer.listen);
+    var handler = undefined;
+    if(config.writer.rest_handler_enable == true) {
+        console.log('rest handler enabled');
+        handler = http_handler;
+    }
+    server = http.createServer(handler).listen(config.writer.listen);
+    // enable socketio
+    //
+    if (config.writer.socketio_handler_enable == true) {
+        console.log('socket io handler enabled');
+        io_handler();
+    }
     binding_signal();
 })()//}}}
