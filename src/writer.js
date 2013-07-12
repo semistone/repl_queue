@@ -21,7 +21,7 @@ var match = /\/([^\/]*)\/?([^\/]*)/,
 var io_handler = function(){//{{{
     var io = socket_io.listen(server);
     io.sockets.on('connection', function (socket){
-        console.log('socket connected');
+        console.log('server socket connected');
         socket.on('repl', function(row, insert_callback){
             volume.run(sql.INSERT_VOLUME_SQL,
                        [row.ID, row.CMD, row.DATA, new Date().getTime()/1000],
@@ -96,8 +96,8 @@ var kill = function(){//{{{
    // close socket
    // 
    socketlist.forEach(function(socket) {
-       console.log('socket disconect');
        socket.disconnect();
+       console.log('server socket disconnect');
    });
    volume.close();
 };//}}}

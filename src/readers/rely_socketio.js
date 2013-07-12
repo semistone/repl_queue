@@ -27,22 +27,25 @@ var rely = function(rely_to){//{{{
     console.log('port is ' + options.port);
     socket = io.connect(options.hostname, { port: options.port});
     socket.on('connect', function () {
-        console.log("socket connected"); 
+        console.log("rely socket connected"); 
         connect_status = true;
     });
     socket.on('disconnect', function () {
-        console.log("socket disconnected"); 
+        console.log("rely socket disconnected"); 
         connect_status = false;
     });
     return do_task;
 };//}}}
 
 var kill = function(){//{{{
-    if(socket){
+    if(socket && connect_status){
        socket.disconnect();
     }
 };//}}}
 
+/**
+ * bining kill signal
+ */
 var binding_signal = function(){//{{{
     process.on('SIGINT', function(){
        console.log('fire SIGINT in reader');
