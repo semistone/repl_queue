@@ -1,5 +1,5 @@
-var rely = require('../rely.js');
-var dist = require('../dist.js');
+var rely = require('../reader/rely.js');
+var dist = require('../reader/dist.js');
 var ip_acl = require('../ip_acl.js');
 config = {
     type: 'fifo',

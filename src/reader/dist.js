@@ -5,7 +5,7 @@
 var options,
     url = require('url'),
     sqlite3 = require('sqlite3').verbose(),
-    sql = require('./sql.js'),
+    sql = require('../sql.js'),
     volume;
 /**
  *
