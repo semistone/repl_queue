@@ -14,7 +14,7 @@ var DELIMITER = '/',
 /**
  * loop message from sql
  */
-var get_last_record_and_loop_message = function(index, finish_callback) {
+var get_last_record_and_loop_message = function(index, finish_callback) {//{{{
     var last_update_rows = 0;
     var working_queue = [], self = this;
     /**
@@ -26,12 +26,12 @@ var get_last_record_and_loop_message = function(index, finish_callback) {
      * loop message
      *
      */
-    var loop_message = function(last_record){
+    var loop_message = function(last_record){//{{{
         volume.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
             console.log('push id ' + row.ID);
         }, self.each_complete_callback);
-    };
+    };//}}}
 
     /**
      * get last record and start loop message.
@@ -49,13 +49,14 @@ var get_last_record_and_loop_message = function(index, finish_callback) {
             loop_message(row.LAST_RECORD);
         }
     });
-}
+};//}}}
 
 /**
- * if last update rows != 0, then keep going.
+ * if previous consumed rows != 0, then keep going.
+ * else stop processing.
  *
  */
-var loop_scan_message = function(){
+var loop_scan_message = function(){//{{{
     var finish_event_emitter = new emitter(),
         finish_callback, self = this;
 
@@ -82,19 +83,26 @@ var loop_scan_message = function(){
     };
     finish_event_emitter.addListener('finish', finish_callback);
     this.get_last_record_and_loop_message(this.index, finish_callback);
-};
+};//}}}
 
-var index_handler = function(index){
+/**
+ * index handle constructor, with method
+ *     loop_scan_message
+ *     get_last_record_and_loop_message
+ *
+ */
+var index_handler = function(index){//{{{
     this.processing = false; // if message loop is processing
     this.index = index;
     index_handler.prototype.loop_scan_message = loop_scan_message;
     index_handler.prototype.get_last_record_and_loop_message = get_last_record_and_loop_message;
-}
+};//}}}
+
 /**
  * start watch db file  -> loop_scan_message
  *
  */
-var watchfile= function(){
+var watchfile= function(){//{{{
     console.log("watching " + volume_file);
     for(index in config.reader){
         console.log('loop index ' + index);
@@ -111,28 +119,22 @@ var watchfile= function(){
             console.log("mtime not equal");
         }   
     });
-}
+}//}}}
 
 /**
  * init tables 
  */
-var init_db = function(){
+var init_db = function(){//{{{
     volume.run(sql.CREATE_SQL);
     meta.run(sql.CREATE_META_SQL);
-};
+};//}}}
+
 
 /**
- * main 
+ * kill or stop reading queue. 
  *
  */
-init_db();
-watchfile();
-
-/**
- * save kill writer
- *
- */
-var kill = function(){
+var kill = function(){//{{{
     console.log('unwatch ' + volume_file);
     fs.unwatchFile(volume_file);
     killed = true;
@@ -142,15 +144,27 @@ var kill = function(){
         console.log('close meta.db');
         meta.close();
     });
-}
-//db.close();
+};//}}}
 
+/**
+ * bind kill signal
+ *
+ */
+var binding_signal = function(){//{{{
+    process.on('SIGINT', function(){
+       console.log('fire SIGINT in reader');
+       kill();
+    });
+    process.on('SIGHUP', function(){
+       console.log('fire SIGHUP in reader');
+       kill();
+    });
+};//}}}
 
-process.on('SIGINT', function(){
-   console.log('fire SIGINT in reader');
-   kill();
-});
-process.on('SIGHUP', function(){
-   console.log('fire SIGHUP in reader');
-   kill();
-});
+/**
+ * main 
+ *
+ */
+init_db();
+watchfile();
+binding_signal();

@@ -5,16 +5,17 @@ var DELIMITER = '/';
 var killed = false;
 var fifos = {}
 /**
- * Fifo consume
+ * Fifo consume constructor.
  * @args working_queue Array
  * @args config Object
  *
  * @return each_complete_callback
  */
 var fifo = function(working_queue, config, index, finish_callback){
+    var self = this;
     this.processing = false;
     fifos[index] = this;
-    var self = this;
+
     console.log('index is ' + index);
     var consumer_function = config.reader[index].consumer_function,
         meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
@@ -115,6 +116,10 @@ var fifo = function(working_queue, config, index, finish_callback){
 
 };
 
+/**
+ * kill fifo executing task.
+ *
+ */
 var kill = function(callback){
     console.log('kill fifo');
     var cnt = fifos.length;
