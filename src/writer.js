@@ -20,7 +20,7 @@ var volume = new sqlite3.cached.Database(config.path + '/volume.db');
  *
  */
 var io_handler = function(){//{{{
-    var io = server.io;
+    var io = server.io.of('/repl_socket' + config.path);
     io.sockets.on('connection', function (socket){
         console.log('server socket connected');
         socket.on('write', function(row, insert_callback){

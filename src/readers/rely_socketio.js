@@ -19,10 +19,7 @@ var consumer_function =  function(row, callback){//{{{
  */
 var constructor = function(rely_to){//{{{
     console.log('rely to ' + rely_to);
-    var options = url.parse(rely_to);
-    console.log('hostname is ' + options.hostname);
-    console.log('port is ' + options.port);
-    this.socket = io.connect(options.hostname, { port: options.port});
+    this.socket = io.connect(rely_to);
     this.socket.on('connect', function () {
         console.log("rely socket connected"); 
         this.connect_status = true;

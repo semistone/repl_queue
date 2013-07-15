@@ -18,7 +18,7 @@ config = {
             consumer_function: [rely_rest, 'http://localhost:9090/repl/example']
         },/*
         '3':{// index
-            consumer_function: rely_socketio('http://localhost:9090')
+            consumer_function: rely_socketio('http://localhost:9090/repl_socket/example')
         },*/
     },
     writer: {
