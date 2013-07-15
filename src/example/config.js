@@ -5,6 +5,9 @@ var rely_socketio = require('../readers/rely_socketio.js');
 config = {
     type: 'fifo',
     path: './example',
+    server: {
+        listen: 9090
+    },
     reader:{
         /*'1':{ // index
             consumer_function: dist('./example/volume2.db')
@@ -18,9 +21,8 @@ config = {
     },
     writer: {
         acl: ip_acl('127.0.0.1'),
-        listen: 9090,
         socketio_handler_enable: true,
-        rest_handler_enable: false 
+        rest_handler_enable: true 
     }
 };
 module.exports = config;

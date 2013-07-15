@@ -23,14 +23,14 @@ var io_handler = function(){//{{{
     var io = server.io;
     io.sockets.on('connection', function (socket){
         console.log('server socket connected');
-        socket.on('repl', function(row, insert_callback){
+        socket.on('write', function(row, insert_callback){
             volume.run(sql.INSERT_VOLUME_SQL,
                        [row.ID, row.CMD, row.DATA, new Date().getTime()/1000],
                        insert_callback);
         });
         socketlist.push(socket);
         socket.on('close', function(){
-            console.log('disconnect');
+            console.log('writer socket close');
             socketlist.splice(socketlist.indexOf(socket), 1);
         });
     });
@@ -92,7 +92,7 @@ var http_handler = function (req, res){//{{{
 var kill = function(){//{{{
    if(closed) return;
    server.kill(function(){
-       console.log('writer listen ' + config.writer.listen + ' killed');
+       console.log('writer listen ' + config.server.listen + ' killed');
    });
    //
    // close socket
@@ -130,7 +130,7 @@ var binding_signal = function(){//{{{
     }
     if(config.writer.rest_handler_enable == true) {
         console.log('rest handler enabled');
-        server.listen(http_handler);
+        server.http.on('request', http_handler);
     }
     // enable socketio
     //

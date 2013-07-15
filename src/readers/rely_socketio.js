@@ -12,7 +12,7 @@ var do_task =  function(row, callback){//{{{
         console.log('disconnected');
         callback(false); 
     }
-    socket.emit('repl', row, function(err){
+    socket.emit('write', row, function(err){
         callback(!err);
     });
 };//}}}
@@ -40,6 +40,7 @@ var rely = function(rely_to){//{{{
 var kill = function(){//{{{
     if(socket && connect_status){
        socket.disconnect();
+       socket = undefined;
     }
 };//}}}
 
