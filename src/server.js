@@ -22,7 +22,7 @@ var constructor = function(config) {//{{{
 
     this.closed = false;
     this.http = http.createServer().listen(config.server.listen);
-    if (config.writer.socketio_handler_enable == true) {
+    if (config.server.socketio_handler_enable == true) {
         var socket_io = require('socket.io');
         this.io = socket_io.listen(this.http);
         this.io.static = false;

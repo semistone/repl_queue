@@ -9,7 +9,7 @@ var sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js'),
     config = require('./example/config.js'),
     socketlist = [];
-    match = /\/([^\/]*)\/?([^\/]*)/;
+    match = /\/repl\/([^\/]*)\/([^\/]*)\/?([^\/]*)/;
 
 var volume = new sqlite3.cached.Database(config.path + '/volume.db');
     server = new server(config),
@@ -54,8 +54,9 @@ var http_handler = function (req, res){//{{{
         console.log('new request ' + req.url);
         var body = '';
         var cmd_and_id = match.exec(req.url);
-        var cmd = cmd_and_id[1];
-        var req_id = cmd_and_id[2];
+        var queue = cmd_and_id[1];
+        var cmd = cmd_and_id[2];
+        var req_id = cmd_and_id[3];
         req.on('data', function (data) {
             body += data;
         });
@@ -129,13 +130,13 @@ var binding_signal = function(){//{{{
         console.log('writer not exist');
         return;
     }
-    if(config.writer.rest_handler_enable == true) {
+    if(config.server.rest_handler_enable == true) {
         console.log('rest handler enabled');
         server.http.on('request', http_handler);
     }
     // enable socketio
     //
-    if (config.writer.socketio_handler_enable == true) {
+    if (config.server.socketio_handler_enable == true) {
         console.log('socket io handler enabled');
         io_handler();
     }

@@ -6,23 +6,23 @@ config = {
     type: 'fifo',
     path: './example',
     server: {
-        listen: 9090
+        listen: 9090,
+        socketio_handler_enable: true,
+        rest_handler_enable: true 
     },
     reader:{
         '1':{ // index
             consumer_function: [dist, './example/volume2.db']
         },
         '2':{// index
-            consumer_function: [rely_rest, 'http://localhost:9090']
+            consumer_function: [rely_rest, 'http://localhost:9090/repl/example']
         },/*
         '3':{// index
             consumer_function: rely_socketio('http://localhost:9090')
         },*/
     },
     writer: {
-        acl: ip_acl('127.0.0.1'),
-        socketio_handler_enable: true,
-        rest_handler_enable: true 
+        acl: ip_acl('127.0.0.1')
     }
 };
 module.exports = config;

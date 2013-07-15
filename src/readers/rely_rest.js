@@ -24,7 +24,7 @@ var consumer_function =  function(row, callback){//{{{
         heads:{
             'Connection': 'Keep-Alive'
         },
-        path: '/' + row.CMD + '/' + req_id
+        path: this.options.path + '/' + row.CMD + '/' + req_id
     };
     console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + _options.hostname + _options.path);
     var req = http.request(_options, function(res) {
