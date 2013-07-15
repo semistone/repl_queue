@@ -8,7 +8,7 @@ var url = require('url'),
 /**
  *
  */
-var do_task =  function(row, callback){
+var consumer_function =  function(row, callback){//{{{
     var req_id = row.REQUEST_ID;
     if (!req_id) {
        req_id = row.ID; 
@@ -24,16 +24,16 @@ var do_task =  function(row, callback){
                        callback(true);
                    }
                });
-};
+};//}}}
 
 /**
  * dist constructor 
  */
-var dist = function(dist_to){
+var constructor = function(dist_to){//{{{
     console.log('save to ' + dist_to);
     this.volume = new sqlite3.cached.Database(dist_to);
     this.volume.run(sql.CREATE_SQL);
-    this.consumer_function = do_task;
-};
+    this.consumer_function = consumer_function;
+};//}}}
 
-module.exports = dist;
+module.exports = constructor;

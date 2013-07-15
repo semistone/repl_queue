@@ -9,9 +9,9 @@ config = {
         listen: 9090
     },
     reader:{
-        /*'1':{ // index
+        '1':{ // index
             consumer_function: [dist, './example/volume2.db']
-        },*/
+        },
         '2':{// index
             consumer_function: [rely_rest, 'http://localhost:9090']
         },/*

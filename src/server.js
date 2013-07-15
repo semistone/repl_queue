@@ -12,15 +12,15 @@ var kill = function(fn){//{{{
 };//}}}
 
 /**
- * init
+ * server constructor 
  *
  */
-var init = function(config) {//{{{
-    this.closed = false;
+var constructor = function(config) {//{{{
     if ( arguments.callee._singletonInstance )
         return arguments.callee._singletonInstance;
     arguments.callee._singletonInstance = this;
 
+    this.closed = false;
     this.http = http.createServer().listen(config.server.listen);
     if (config.writer.socketio_handler_enable == true) {
         var socket_io = require('socket.io');
@@ -35,4 +35,4 @@ var init = function(config) {//{{{
     return this;
 };//}}}
 
-module.exports = init;
+module.exports = constructor;

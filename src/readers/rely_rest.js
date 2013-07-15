@@ -7,9 +7,10 @@ var url = require('url'),
 var SOCKET_TIMEOUT = 2000;
 
 /**
+ * do task
  *
  */
-var do_task =  function(row, callback){//{{{
+var consumer_function =  function(row, callback){//{{{
     var req_id = row.REQUEST_ID;
     if (!req_id) {
        req_id = row.ID; 
@@ -54,14 +55,14 @@ var do_task =  function(row, callback){//{{{
 /**
  * constructor
  */
-var rely = function(rely_to){//{{{
+var constructor = function(rely_to){//{{{
     this.agent = new http.Agent;
     this.agent.maxSockets = 1;
     console.log('rely to ' + rely_to);
     this.options = url.parse(rely_to);
     console.log('hostname is ' + this.options.hostname);
     console.log('port is ' + this.options.port);
-    this.consumer_function = do_task;
+    this.consumer_function = consumer_function;
 };//}}}
 
-module.exports = rely;
+module.exports = constructor;

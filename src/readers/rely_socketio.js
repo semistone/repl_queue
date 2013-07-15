@@ -2,10 +2,9 @@ var io = require('socket.io-client'),
     url = require('url');
 
 /**
- *
- *
+ * consumer function
  */
-var do_task =  function(row, callback){//{{{
+var consumer_function =  function(row, callback){//{{{
     if(!this.connect_status){
         console.log('disconnected');
         callback(false); 
@@ -18,7 +17,7 @@ var do_task =  function(row, callback){//{{{
 /**
  * rely through socket io constructor
  */
-var rely = function(rely_to){//{{{
+var constructor = function(rely_to){//{{{
     console.log('rely to ' + rely_to);
     var options = url.parse(rely_to);
     console.log('hostname is ' + options.hostname);
@@ -32,7 +31,7 @@ var rely = function(rely_to){//{{{
         console.log("rely socket disconnected"); 
         this.connect_status = false;
     });
-    this.consumer_function = do_task;
+    this.consumer_function = consumer_function;
     this.kill = kill;
 };//}}}
 
@@ -47,4 +46,4 @@ var kill = function(){//{{{
     }
 };//}}}
 
-module.exports = rely;
+module.exports = constructor;
