@@ -4,22 +4,23 @@
  *
  *  todo: authenticate method or acl
  */
-var http = require('http'),
-    socket_io = require('socket.io'),
-    sqlite3 = require('sqlite3').verbose(),
+var sqlite3 = require('sqlite3').verbose(),
+    server = require('./server.js'),
     sql = require('./sql.js'),
     config = require('./example/config.js'),
     socketlist = [];
-var match = /\/([^\/]*)\/?([^\/]*)/,
-    server,
-    volume = new sqlite3.cached.Database(config.path + '/volume.db');
+    match = /\/([^\/]*)\/?([^\/]*)/;
+
+var volume = new sqlite3.cached.Database(config.path + '/volume.db');
+    server = new server(config),
+    closed = false; 
 
 /**
  * socket io handler
  *
  */
 var io_handler = function(){//{{{
-    var io = socket_io.listen(server);
+    var io = server.io;
     io.sockets.on('connection', function (socket){
         console.log('server socket connected');
         socket.on('repl', function(row, insert_callback){
@@ -89,7 +90,8 @@ var http_handler = function (req, res){//{{{
  *
  */
 var kill = function(){//{{{
-   server.close(function(){
+   if(closed) return;
+   server.kill(function(){
        console.log('writer listen ' + config.writer.listen + ' killed');
    });
    //
@@ -100,6 +102,7 @@ var kill = function(){//{{{
        console.log('server socket disconnect');
    });
    volume.close();
+   closed = true;
 };//}}}
 
 /**
@@ -125,12 +128,10 @@ var binding_signal = function(){//{{{
         console.log('writer not exist');
         return;
     }
-    var handler = undefined;
     if(config.writer.rest_handler_enable == true) {
         console.log('rest handler enabled');
-        handler = http_handler;
+        server.listen(http_handler);
     }
-    server = http.createServer(handler).listen(config.writer.listen);
     // enable socketio
     //
     if (config.writer.socketio_handler_enable == true) {
