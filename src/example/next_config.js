@@ -22,7 +22,7 @@ var config = {
                         consumer_function: rely_socketio('@localhost:queue2')
                     },
                     '4':{
-                        consumer_function: subscribe_from('@localhost:queue2')
+                        consumer_function: subscribe_from('@localhost:queue2') // auth parameter
                     }
                 },
                 subscribe_enable: true
@@ -32,7 +32,7 @@ var config = {
                     acl: ip_acl('127.0.0.1'),
                     socketio_handler_enable: true,
                     rest_handler_enable: true,
-                    subscribe_to: '@localhost:queue1.4' // from host:localhost queue:queue1 id:4
+                    subscribe: '@localhost:queue1.4' // from host:localhost queue:queue1 id:4
                 }
             }
         }

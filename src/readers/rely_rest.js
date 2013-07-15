@@ -8,11 +8,11 @@ var options,
 var agent = new http.Agent;
     agent.maxSockets = 1;
 var SOCKET_TIMEOUT = 2000;
-//var i = 0;
+
 /**
  *
  */
-var do_task =  function(row, callback){
+var do_task =  function(row, callback){//{{{
     // for testing 
     /*
     i++;
@@ -60,17 +60,17 @@ var do_task =  function(row, callback){
     });
     req.write(row.DATA);
     req.end();
-};
+};//}}}
 
 /**
- *
+ * constructor
  */
-var rely = function(rely_to){
+var rely = function(rely_to){//{{{
     console.log('rely to ' + rely_to);
     options = url.parse(rely_to);
     console.log('hostname is ' + options.hostname);
     console.log('port is ' + options.port);
     return do_task;
-};
+};//}}}
 
 module.exports = rely;

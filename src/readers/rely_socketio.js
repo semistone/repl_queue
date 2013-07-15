@@ -18,7 +18,7 @@ var do_task =  function(row, callback){//{{{
 };//}}}
 
 /**
- *
+ * rely through socket io
  */
 var rely = function(rely_to){//{{{
     console.log('rely to ' + rely_to);
@@ -37,6 +37,10 @@ var rely = function(rely_to){//{{{
     return do_task;
 };//}}}
 
+/**
+ * kill 
+ *
+ */
 var kill = function(){//{{{
     if(socket && connect_status){
        socket.disconnect();

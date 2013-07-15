@@ -39,7 +39,8 @@ var io_handler = function(){//{{{
 
 /*
  * http request handler
- *
+ * 
+ * @path /repl/$queue_id/$cmd/$req_id
  */
 var http_handler = function (req, res){//{{{
     var acl = config.writer.acl;
