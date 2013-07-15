@@ -18,14 +18,15 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
     fifos[index] = this;
 
     console.log('index is ' + index);
-    var consumer_function = config.reader[index].consumer_function,
-        meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
+    var reader_setting = config.reader[index].consumer_function;
+    if (reader_setting == undefined) {
+        throw new Error('consumer_function is undefined');
+    }
+    var reader = new reader_setting[0](reader_setting[1]);
+    var meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db'),
         queue_size = 0,
         remain_cnt = 0;
 
-    if (consumer_function == undefined) {
-        throw new Error('consumer_function is undefined');
-    }
     
     /**
      * db.each(select)'s callback function
@@ -42,7 +43,20 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
             self.processing = false;
             return;
         }
-         
+        var check_kill = function(killed){
+            if (killed){
+                console.log('killed signal fired');
+                event_emitter.removeAllListeners();
+                if (reader.kill){
+                    reader.kill();
+                }
+                killed();
+                return true;
+            }else{
+                return false;
+            }
+        };
+
         /**
          * serialize execute task.
          *
@@ -52,12 +66,8 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
             if (working_queue.length == 0) { // all task done
                 return;
             }
-            if (killed){
-                console.log('killed signal fired');
-                event_emitter.removeAllListeners();
-                killed();
-                return;
-            }
+            if(check_kill(killed)) return;
+           
             var row = working_queue.shift();
             console.log('consume row ' + row.ID);
             var retry = 0;
@@ -103,21 +113,16 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
                     if (retry > 3) {
                         throw new Error('retry to many times');
                     }
-                    if (killed){
-                        console.log('killed signal fired');
-                        event_emitter.removeAllListeners();
-                        killed();
-                        return;
-                    }
+                    if(check_kill(killed)) return;
                     //
                     // delay call
                     //
                     setTimeout(function(){
-                        consumer_function(row, self); // self = function(consume_status) itself
+                        reader.consumer_function(row, self); // self = function(consume_status) itself
                     }, 3000)
                 }
             };//}}}
-            consumer_function(row, consume_result_callback);
+            reader.consumer_function(row, consume_result_callback);
         };//}}}
 
         event_emitter.on('next', sequence_task);

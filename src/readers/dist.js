@@ -2,11 +2,9 @@
  * dist consumer
  *
  */
-var options,
-    url = require('url'),
+var url = require('url'),
     sqlite3 = require('sqlite3').verbose(),
-    sql = require('../sql.js'),
-    volume;
+    sql = require('../sql.js');
 /**
  *
  */
@@ -16,7 +14,7 @@ var do_task =  function(row, callback){
        req_id = row.ID; 
     }
     console.log('save id :' + row.ID + " data:" + row.DATA);
-    volume.run(sql.INSERT_VOLUME_SQL,
+    this.volume.run(sql.INSERT_VOLUME_SQL,
                [req_id, row.CMD, row.DATA, new Date().getTime()/1000],
                function(err){
                    if(err){
@@ -29,13 +27,13 @@ var do_task =  function(row, callback){
 };
 
 /**
- *
+ * dist constructor 
  */
 var dist = function(dist_to){
     console.log('save to ' + dist_to);
-    volume = new sqlite3.cached.Database(dist_to);
-    volume.run(sql.CREATE_SQL);
-    return do_task;
+    this.volume = new sqlite3.cached.Database(dist_to);
+    this.volume.run(sql.CREATE_SQL);
+    this.consumer_function = do_task;
 };
 
 module.exports = dist;

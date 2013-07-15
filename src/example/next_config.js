@@ -6,7 +6,9 @@ var config = {
     localhost:{
         server: {
             listen: 9090,
-            base_dir = './'
+            base_dir = './',
+            socketio_handler_enable: true,
+            rest_handler_enable: true
         },
         queues:{
             example1:{
@@ -24,14 +26,11 @@ var config = {
                     '4':{
                         consumer_function: subscribe_from('@localhost:queue2') // auth parameter
                     }
-                },
-                subscribe_enable: true
+                }
             },
             example2:{
-                writer: {
+                writer:{
                     acl: ip_acl('127.0.0.1'),
-                    socketio_handler_enable: true,
-                    rest_handler_enable: true,
                     subscribe: '@localhost:queue1.4' // from host:localhost queue:queue1 id:4
                 }
             }

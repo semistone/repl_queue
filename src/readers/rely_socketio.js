@@ -1,40 +1,39 @@
 var io = require('socket.io-client'),
-    url = require('url'),
-    connect_status = false,
-    socket;
+    url = require('url');
 
 /**
  *
  *
  */
 var do_task =  function(row, callback){//{{{
-    if(!connect_status){
+    if(!this.connect_status){
         console.log('disconnected');
         callback(false); 
     }
-    socket.emit('write', row, function(err){
+    this.socket.emit('write', row, function(err){
         callback(!err);
     });
 };//}}}
 
 /**
- * rely through socket io
+ * rely through socket io constructor
  */
 var rely = function(rely_to){//{{{
     console.log('rely to ' + rely_to);
     var options = url.parse(rely_to);
     console.log('hostname is ' + options.hostname);
     console.log('port is ' + options.port);
-    socket = io.connect(options.hostname, { port: options.port});
-    socket.on('connect', function () {
+    this.socket = io.connect(options.hostname, { port: options.port});
+    this.socket.on('connect', function () {
         console.log("rely socket connected"); 
-        connect_status = true;
+        this.connect_status = true;
     });
-    socket.on('disconnect', function () {
+    this.socket.on('disconnect', function () {
         console.log("rely socket disconnected"); 
-        connect_status = false;
+        this.connect_status = false;
     });
-    return do_task;
+    this.consumer_function = do_task;
+    this.kill = kill;
 };//}}}
 
 /**
@@ -42,25 +41,10 @@ var rely = function(rely_to){//{{{
  *
  */
 var kill = function(){//{{{
-    if(socket && connect_status){
-       socket.disconnect();
-       socket = undefined;
+    if(this.socket && this.connect_status){
+       this.socket.disconnect();
+       this.socket = undefined;
     }
 };//}}}
 
-/**
- * bining kill signal
- */
-var binding_signal = function(){//{{{
-    process.on('SIGINT', function(){
-       console.log('fire SIGINT in reader');
-       kill();
-    });
-    process.on('SIGHUP', function(){
-       console.log('fire SIGHUP in reader');
-       kill();
-    });
-};//}}}
-
-binding_signal();
 module.exports = rely;

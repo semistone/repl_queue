@@ -2,35 +2,24 @@
  * rely consumer
  *
  */
-var options,
-    url = require('url'),
+var url = require('url'),
     http = require('http');
-var agent = new http.Agent;
-    agent.maxSockets = 1;
 var SOCKET_TIMEOUT = 2000;
 
 /**
  *
  */
 var do_task =  function(row, callback){//{{{
-    // for testing 
-    /*
-    i++;
-    if (i > 10) {
-        callback(false);
-        return;
-    }
-    */
     var req_id = row.REQUEST_ID;
     if (!req_id) {
        req_id = row.ID; 
     }
     var _options = {
-        protocol: options.protocal,
+        protocol: this.options.protocal,
         method: 'POST',
-        agent: agent,
-        hostname: options.hostname,
-        port: options.port,
+        agent: this.agent,
+        hostname: this.options.hostname,
+        port: this.options.port,
         heads:{
             'Connection': 'Keep-Alive'
         },
@@ -66,11 +55,13 @@ var do_task =  function(row, callback){//{{{
  * constructor
  */
 var rely = function(rely_to){//{{{
+    this.agent = new http.Agent;
+    this.agent.maxSockets = 1;
     console.log('rely to ' + rely_to);
-    options = url.parse(rely_to);
-    console.log('hostname is ' + options.hostname);
-    console.log('port is ' + options.port);
-    return do_task;
+    this.options = url.parse(rely_to);
+    console.log('hostname is ' + this.options.hostname);
+    console.log('port is ' + this.options.port);
+    this.consumer_function = do_task;
 };//}}}
 
 module.exports = rely;
