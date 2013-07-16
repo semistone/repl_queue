@@ -22,6 +22,8 @@ var SELECT_SQL = "select * from QUEUE_VOLUME where ID > ? order by ID asc limit 
 var SELECT_META_SQL = "select * from QUEUE_META where ID = ?";
 var INSERT_META_SQL = "insert into QUEUE_META values(?,?, 0)";
 var UPDATE_META_SQL = "update QUEUE_META set LAST_RECORD=? where ID=?";
+var UPDATE_META_VOLUME_SQL = "update QUEUE_META set VOLUME=? where ID=0";
+var INSERT_LAST_META_SQL = "insert into QUEUE_META select ?, VOLUME, LAST_RECORD from QUEUE_META where ID='0'";
 module.exports = {
     CREATE_SQL: CREATE_SQL,
     CREATE_META_SQL: CREATE_META_SQL,
@@ -29,5 +31,6 @@ module.exports = {
     SELECT_META_SQL: SELECT_META_SQL,
     INSERT_META_SQL: INSERT_META_SQL,
     UPDATE_META_SQL: UPDATE_META_SQL,
-    INSERT_VOLUME_SQL: INSERT_VOLUME_SQL 
+    INSERT_VOLUME_SQL: INSERT_VOLUME_SQL,
+    INSERT_LAST_META_SQL: INSERT_LAST_META_SQL
 };

@@ -144,7 +144,7 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
 var kill = function(callback){//{{{
     console.log('kill fifo');
     var cnt = fifos.length;
-    for(i in fifos){
+    for(var i in fifos){
         if (!fifos[i].processing) {
             console.log('fifo task not processing');
             cnt--;

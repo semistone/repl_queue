@@ -8,39 +8,14 @@ var sqlite3 = require('sqlite3').verbose(),
     server = require('./server.js'),
     sql = require('./sql.js'),
     config = require('./example/config.js'),
+    db = require('./db.js'),
     socketlist = [];
     match = /\/repl\/([^\/]*)\/([^\/]*)\/?([^\/]*)/;
 
 var volume,
-    meta = new sqlite3.cached.Database(config.path + '/meta.db'),
+    db = new db(config);
     server = new server(config),
-    closed = false,
-    volume_id = 0; 
-
-var init_volume = function(callback){//{{{
-    /**
-     * get last record and start loop message.
-     *
-     */
-    meta.get(sql.SELECT_META_SQL, [0],function(error, row) {
-        tableExists = (row != undefined);
-        if (!tableExists) {
-            meta.serialize(function(){
-                meta.run(sql.CREATE_META_SQL);
-                meta.run(sql.INSERT_META_SQL, [0, 0], function(){
-                    console.log("insert writer meta done");
-                });
-            });
-        } else {
-            console.log('last volume for writer is ' + row.VOLUME);
-            volume_id = row.VOLUME;
-        }
-        console.log('open volume file in ' + config.path + '/volume_'+ volume_id + '.db');
-        var volume = new sqlite3.cached.Database(config.path + '/volume_'+ volume_id + '.db')
-        callback(volume);
-    });
-
-};//}}}
+    closed = false;
 
 /**
  * socket io handler
@@ -97,7 +72,11 @@ var http_handler = function (req, res){//{{{
             } else {
                 console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
                 if(this.lastID > 5000) { // do rotate
-
+                    db.rotate(function(_volume_id, _volume){
+                        volume = _volume; 
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                    });
+                    return;
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
             }
@@ -156,7 +135,7 @@ var binding_signal = function(){//{{{
  * main
  */
 (function(){//{{{
-    init_volume(function(_volume){
+    db.init_volume(function(_volume_id, _volume){
         volume = _volume;
         if (config.writer == undefined) {
             console.log('writer not exist');
