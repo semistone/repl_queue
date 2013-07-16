@@ -83,7 +83,7 @@ var init_reader = function(index, callback){//{{{
             console.log('copy meta from index 0 ');
             self.meta.run(sql.INSERT_LAST_META_SQL, [index], function(err){
                 console.log(err);
-                arguments.caller.caller(index, callback);         
+                arguments.callee.caller.caller(index, callback);         
             }); 
         } else {
             console.log('last record for ' + index +' is ' + row.VOLUME);

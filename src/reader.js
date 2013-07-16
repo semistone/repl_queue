@@ -90,10 +90,10 @@ var loop_scan_message = function(){//{{{
  *
  */
 var index_handler = function(index){//{{{
+    var self = this;
     this.db = new db(config);
     this.processing = false; // if message loop is processing
     this.index = index;
-    var self = this;
     this.db.init_reader(index, function(_volume_id, _volume, _meta){
         self.volume_file = config.path + DELIMITER + 'volume_' + _volume_id + '.db';
         self.volume = _volume;    
@@ -108,13 +108,14 @@ var index_handler = function(index){//{{{
  *
  */
 var watchfile= function(){//{{{
+    var self = this;
     console.log("watching " + this.volume_file);
     this.loop_scan_message();
     fs.watchFile(this.volume_file, function(curr,prev) {
         if (curr.mtime == prev.mtime) {
             console.log("mtime equal");
         } else {
-            this.loop_scan_message();
+            self.loop_scan_message();
             console.log("mtime not equal");
         }   
     });
@@ -127,14 +128,15 @@ var watchfile= function(){//{{{
  *
  */
 var kill = function(){//{{{
+    var self = this;
     console.log('unwatch ' + this.volume_file);
     fs.unwatchFile(this.volume_file);
     killed = true;
     fifo.kill(function(){
         console.log('close volme.db');
-        this.volume.close();
+        self.volume.close();
         console.log('close meta.db');
-        this.meta.close();
+        self.meta.close();
     });
 };//}}}
 
@@ -143,13 +145,14 @@ var kill = function(){//{{{
  *
  */
 var binding_signal = function(){//{{{
+    var self = this;
     process.on('SIGINT', function(){
        console.log('fire SIGINT in reader');
-       this.kill();
+       self.kill();
     });
     process.on('SIGHUP', function(){
        console.log('fire SIGHUP in reader');
-       this.kill();
+       self.kill();
     });
 };//}}}
 
