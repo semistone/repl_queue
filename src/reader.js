@@ -40,7 +40,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {//{{{
     meta.get(sql.SELECT_META_SQL, [index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
-            meta.run(sql.INSERT_META_SQL, [index], function(){
+            meta.run(sql.INSERT_META_SQL, [index, 0], function(){
                 console.log("insert meta done");    
                 loop_message(0);
             });

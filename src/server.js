@@ -5,7 +5,7 @@ var http = require('http');
  *
  */
 var kill = function(fn){//{{{
-    if(closed) return;
+    if(this.closed) return;
     this.http.close(fn);
     this.closed = true;
     this.http = undefined;

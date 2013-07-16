@@ -11,9 +11,36 @@ var sqlite3 = require('sqlite3').verbose(),
     socketlist = [];
     match = /\/repl\/([^\/]*)\/([^\/]*)\/?([^\/]*)/;
 
-var volume = new sqlite3.cached.Database(config.path + '/volume.db');
+var volume,
+    meta = new sqlite3.cached.Database(config.path + '/meta.db'),
     server = new server(config),
-    closed = false; 
+    closed = false,
+    volume_id = 0; 
+
+var init_volume = function(callback){//{{{
+    /**
+     * get last record and start loop message.
+     *
+     */
+    meta.get(sql.SELECT_META_SQL, [0],function(error, row) {
+        tableExists = (row != undefined);
+        if (!tableExists) {
+            meta.serialize(function(){
+                meta.run(sql.CREATE_META_SQL);
+                meta.run(sql.INSERT_META_SQL, [0, 0], function(){
+                    console.log("insert writer meta done");
+                });
+            });
+        } else {
+            console.log('last volume for writer is ' + row.VOLUME);
+            volume_id = row.VOLUME;
+        }
+        console.log('open volume file in ' + config.path + '/volume_'+ volume_id + '.db');
+        var volume = new sqlite3.cached.Database(config.path + '/volume_'+ volume_id + '.db')
+        callback(volume);
+    });
+
+};//}}}
 
 /**
  * socket io handler
@@ -21,7 +48,7 @@ var volume = new sqlite3.cached.Database(config.path + '/volume.db');
  */
 var io_handler = function(){//{{{
     var io = server.io.of('/repl_socket' + config.path);
-    io.sockets.on('connection', function (socket){
+    io.on('connection', function (socket){
         console.log('server socket connected');
         socket.on('write', function(row, insert_callback){
             volume.run(sql.INSERT_VOLUME_SQL,
@@ -68,7 +95,10 @@ var http_handler = function (req, res){//{{{
                 console.log('insert result ' + err);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
             } else {
-                console.log('insert success for cmd:'+cmd);
+                console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
+                if(this.lastID > 5000) { // do rotate
+
+                }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
             }
             res.end();
@@ -126,19 +156,22 @@ var binding_signal = function(){//{{{
  * main
  */
 (function(){//{{{
-    if (config.writer == undefined) {
-        console.log('writer not exist');
-        return;
-    }
-    if(config.server.rest_handler_enable == true) {
-        console.log('rest handler enabled');
-        server.http.on('request', http_handler);
-    }
-    // enable socketio
-    //
-    if (config.server.socketio_handler_enable == true) {
-        console.log('socket io handler enabled');
-        io_handler();
-    }
-    binding_signal();
+    init_volume(function(_volume){
+        volume = _volume;
+        if (config.writer == undefined) {
+            console.log('writer not exist');
+            return;
+        }
+        if(config.server.rest_handler_enable == true) {
+            console.log('rest handler enabled');
+            server.http.on('request', http_handler);
+        }
+        // enable socketio
+        //
+        if (config.server.socketio_handler_enable == true) {
+            console.log('socket io handler enabled');
+            io_handler();
+        }
+        binding_signal();
+    });
 })()//}}}
