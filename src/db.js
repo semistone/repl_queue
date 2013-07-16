@@ -123,15 +123,17 @@ var init_reader = function(index, callback){//{{{
         } else {
             console.log('last record for ' + index +' is ' + row.VOLUME);
             self.volume_id =  row.VOLUME;
-            var volume_file = self.config.path + '/volume_'+ self.volume_id + '.db';
-            fs.stat(volume_file, function(err, stat){
+            self.volume_file = self.config.path + '/volume_'+ self.volume_id + '.db';
+            self.is_latest = false;
+            fs.stat(self.volume_file, function(err, stat){
                 console.log('check file exist ' + err);
                 if(err){
-                    volume_file = self.config.path + '/volume.db';
+                    self.volume_file = self.config.path + '/volume.db';
+                    self.is_latest = true;
                 }
-                console.log('open volume file ' + volume_file);
-                self.volume = new sqlite3.cached.Database(volume_file);
-                callback(self.volume_id, self.volume, self.meta, volume_file);
+                console.log('open volume file ' + self.volume_file);
+                self.volume = new sqlite3.cached.Database(self.volume_file);
+                callback();
             });
         }
     });

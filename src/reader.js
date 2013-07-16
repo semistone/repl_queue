@@ -94,11 +94,16 @@ var index_handler = function(index){//{{{
     this.db = new db(config);
     this.processing = false; // if message loop is processing
     this.index = index;
-    this.db.init_reader(index, function(_volume_id, _volume, _meta, volume_file){
-        self.volume_file = volume_file
-        self.volume = _volume;    
-        self.meta = _meta;
-        self.watchfile();
+    this.db.init_reader(index, function(){
+        self.volume_file = self.db.volume_file
+        self.volume = self.db.volume;    
+        self.meta = self.db.meta;
+        self.is_latest = self.db.is_latest;
+        if(self.is_latest){ // only latest file need to watch
+            self.watchfile();
+        } else{
+            self.loop_scan_message();
+        }
         self.binding_signal();
     });
 };//}}}
