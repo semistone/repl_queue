@@ -37,9 +37,9 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
         var event_emitter = new emitter();
         console.log('select result size for ' + index + ' is ' + rows);
         queue_size = remain_cnt = rows;
-        if (rows == 0) { // check empty result.
+        if (rows == undefined || rows == 0) { // check empty result.
             console.log('empty rows');
-            finish_callback(rows);
+            finish_callback(0);
             self.processing = false;
             return;
         }

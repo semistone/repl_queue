@@ -11,9 +11,9 @@ config = {
         rest_handler_enable: true 
     },
     reader:{
-        '1':{ // index
-            consumer_function: [dist, './example/volume2.db']
-        },
+        //'1':{ // index
+        //    consumer_function: [dist, './example/volume2.db']
+        //},
         '2':{// index
             consumer_function: [rely_rest, 'http://localhost:9090/repl/example']
         },/*

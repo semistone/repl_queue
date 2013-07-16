@@ -1,6 +1,7 @@
 var sqlite3 = require('sqlite3').verbose(),
     sql = require('./sql.js');
-    fs = require('fs');
+    fs = require('fs'),
+    VOLUME_SIZE = 30;
 
 var init_volume = function(callback){//{{{
     this.volume_id = 0;
@@ -9,6 +10,7 @@ var init_volume = function(callback){//{{{
      * get last record and start loop message.
      *
      */
+    console.log('init volume');
     this.meta.get(sql.SELECT_META_SQL, [0],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
@@ -21,9 +23,11 @@ var init_volume = function(callback){//{{{
             console.log('last volume for writer is ' + row.VOLUME);
             self.volume_id = row.VOLUME;
         }
-        console.log('open volume file in ' + self.config.path + '/volume_'+ self.volume_id + '.db');
-        self.volume = new sqlite3.cached.Database(self.config.path + '/volume_'+ self.volume_id + '.db')
-        callback(self.volume_id, self.volume);
+        console.log('open volume file in ' + self.config.path + '/volume.db');
+        self.volume = new sqlite3.cached.Database(self.config.path + '/volume.db')
+        self.volume.run(sql.CREATE_SQL, function(){
+            callback(self.volume_id, self.volume);
+        });
     });
 
 };//}}}
@@ -33,22 +37,31 @@ var init_volume = function(callback){//{{{
  *
  */    
 var rotate = function(callback){//{{{
-    console.log('rotate volume file');
+    var self = this;
     if(this.callbacks != undefined){// prevent concurrent 
         this.callbacks.push(callback);
+        console.log('rotate volume file push callback');
         return;
     } else {
         this.callbacks = [];
         this.callbacks.push(callback);
     }
-    fs.chmod(this.config.path + '/volume_'+ this.volume_id + '.db', '444'); // set to readonly mode.
-    this.volume_id += 1;
-    this.volume = new sqlite3.cached.Database(this.config.path + '/volume_'+ this.volume_id + '.db');
-    this.volume.run(sql.CREATE_SQL);
-    this.meta.run(sql.UPDATE_META_VOLUME_SQL, [this.volume_id], function(){
-        for(var i in this.callbacks){
-            this.callbacks[i](this.volume_id, this.volume);
-        }            
+    console.log('rotate volume file');
+    var old_name = this.config.path + '/volume.db';
+    var new_name = this.config.path + '/volume_' + this.volume_id + '.db';
+    fs.rename(old_name, new_name, function(){ // rename to volume_id.db
+        self.volume_id += 1;
+        console.log('open new volume ' + old_name);
+        self.volume = new sqlite3.cached.Database(old_name);
+        self.volume.run(sql.CREATE_SQL);
+        console.log('update writer volume id to ' + self.volume_id);
+        self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function(){
+            for(var i in this.callbacks){
+                self.callbacks[i](self.volume_id, self.volume);
+            }            
+            self.callbacks = [];
+            fs.chmod(new_name, '444'); // set to readonly mode.
+        });
     });
 };//}}}
 
@@ -56,10 +69,32 @@ var constructor = function(config){//{{{
     this.config = config;
     this.meta = new sqlite3.cached.Database(config.path + '/meta.db');
     this.meta.run(sql.CREATE_META_SQL);
-    this.init_volume = init_volume;
-    this.init_db = init_db;
-    this.init_reader = init_reader;
 }//}}}
+
+var insert = function(req_id, cmd, body, callback){//{{{
+    var self = this;
+    var insert_callback = function(err){
+        if (err){
+            console.log('insert result ' + err);
+            callback(err);
+        } else {
+            console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
+            if(this.lastID > VOLUME_SIZE) { // do rotate
+                self.rotate(function(_volume_id, _volume){
+                    self.volume = _volume; 
+                    callback();
+                });
+                return;
+            } else{
+                callback();
+            }
+        }
+    };
+    this.volume.run(sql.INSERT_VOLUME_SQL,
+        [req_id, cmd, body, new Date().getTime()/1000],
+        insert_callback);
+
+};//}}}
 
 /**
  * init tables 
@@ -88,11 +123,27 @@ var init_reader = function(index, callback){//{{{
         } else {
             console.log('last record for ' + index +' is ' + row.VOLUME);
             self.volume_id =  row.VOLUME;
-            self.volume = new sqlite3.cached.Database(self.config.path + '/volume_'+ self.volume_id + '.db');
-            callback(self.volume_id, self.volume, self.meta);
+            var volume_file = self.config.path + '/volume_'+ self.volume_id + '.db';
+            fs.stat(volume_file, function(err, stat){
+                console.log('check file exist ' + err);
+                if(err){
+                    volume_file = self.config.path + '/volume.db';
+                }
+                console.log('open volume file ' + volume_file);
+                self.volume = new sqlite3.cached.Database(volume_file);
+                callback(self.volume_id, self.volume, self.meta, volume_file);
+            });
         }
     });
 
 };//}}}
+
+constructor.prototype = {
+    init_volume: init_volume,
+    init_db:  init_db,
+    init_reader: init_reader,
+    insert: insert,
+    rotate: rotate 
+};
 
 module.exports = constructor;

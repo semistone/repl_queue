@@ -26,9 +26,7 @@ var io_handler = function(){//{{{
     io.on('connection', function (socket){
         console.log('server socket connected');
         socket.on('write', function(row, insert_callback){
-            volume.run(sql.INSERT_VOLUME_SQL,
-                       [row.ID, row.CMD, row.DATA, new Date().getTime()/1000],
-                       insert_callback);
+            db.insert(row.ID, row.CMD, row.DATA, inser_callback);
         });
         socketlist.push(socket);
         socket.on('close', function(){
@@ -67,28 +65,16 @@ var http_handler = function (req, res){//{{{
          */
         var insert_callback = function(err){//{{{
             if (err){
-                console.log('insert result ' + err);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
             } else {
-                console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
-                if(this.lastID > 5000) { // do rotate
-                    db.rotate(function(_volume_id, _volume){
-                        volume = _volume; 
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                    });
-                    return;
-                }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
             }
             res.end();
         };//}}}
 
-        req.on('end', 
-               function (){
-                   volume.run(sql.INSERT_VOLUME_SQL,
-                              [req_id, cmd, body, new Date().getTime()/1000],
-                              insert_callback);}
-              );
+        req.on('end', function (){
+            db.insert(req_id, cmd, body, insert_callback);
+        });
     }else{
         console.log('only accept POST method');
         res.writeHead(405, { 'Content-Type': 'application/json' });

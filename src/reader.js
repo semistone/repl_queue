@@ -94,8 +94,8 @@ var index_handler = function(index){//{{{
     this.db = new db(config);
     this.processing = false; // if message loop is processing
     this.index = index;
-    this.db.init_reader(index, function(_volume_id, _volume, _meta){
-        self.volume_file = config.path + DELIMITER + 'volume_' + _volume_id + '.db';
+    this.db.init_reader(index, function(_volume_id, _volume, _meta, volume_file){
+        self.volume_file = volume_file
         self.volume = _volume;    
         self.meta = _meta;
         self.watchfile();
