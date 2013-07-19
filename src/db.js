@@ -69,8 +69,9 @@ var rotate = function(callback){//{{{
         });
         console.log('update writer volume id to ' + self.volume_id);
         self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function(){
-            for(var i in this.callbacks){
-                self.callbacks[i](self.volume_id, self.volume);
+            for(var i in self.callbacks){
+                console.log('rotate finished callback ' + i);
+                self.callbacks[i]();
             }            
             self.callbacks = [];
         });
@@ -92,8 +93,7 @@ var insert = function(req_id, cmd, body, callback){//{{{
         } else {
             console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
             if(this.lastID > VOLUME_SIZE) { // do rotate
-                self.rotate(function(_volume_id, _volume){
-                    self.volume = _volume; 
+                self.rotate(function(){
                     callback();
                 });
                 return;
