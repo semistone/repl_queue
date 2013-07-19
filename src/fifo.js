@@ -82,7 +82,6 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
              *       
              */
             var consume_result_callback = function(consume_status){ //{{{ do consume
-                var self = arguments.callee;
 
                 /**
                  * call when task finish and update meta finish
@@ -93,7 +92,7 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
                     console.log('update meta finish id:' + row.ID);
                     remain_cnt--;
                     if (remain_cnt == 0) {
-                        finish_callback(queue_size);    
+                        finish_callback(queue_size, self.rowID);    
                         self.processing = false;
                         return false;
                     }
@@ -102,6 +101,7 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
 
                 if (consume_status) { // task done and success
                     console.log('consume success for id:' + row.ID);
+                    self.rowID = row.ID
                     meta.run(sql.UPDATE_META_SQL, [row.ID, index], function(){
                         if (update_meta_finish(row)){ // has next
                             event_emitter.emit('next');
@@ -118,7 +118,7 @@ var fifo = function(working_queue, config, index, finish_callback){//{{{
                     // delay call
                     //
                     setTimeout(function(){
-                        reader.consumer_function(row, self); // self = function(consume_status) itself
+                        reader.consumer_function(row, consume_result_callback); // self = function(consume_status) itself
                     }, 3000)
                 }
             };//}}}

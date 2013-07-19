@@ -44,6 +44,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {//{{{
             });
         } else {
             console.log('last record for ' + index +' is ' + row.LAST_RECORD);
+            self.last_record = row.LAST_RECORD;
             loop_message(row.LAST_RECORD);
         }
     });
@@ -63,7 +64,7 @@ var loop_scan_message = function(){//{{{
         return;
     }
     this.processing = true;
-    finish_callback = function(rows){
+    finish_callback = function(rows, rowID){
         console.log('finish callback');
         if (killed) { // killed signal fired, stop loop.
             finish_event_emitter.removeAllListeners();
@@ -75,8 +76,21 @@ var loop_scan_message = function(){//{{{
                 finish_event_emitter.emit('finish', rows);         
             });
         } else {
-            console.log('end scan message and stop processing');
+            if (rowID == undefined){
+                rowID = self.last_record;
+            }
+            console.log('end scan message and stop processing row id is ' + rowID);
             self.processing = false;
+            if (rowID > 30){
+                console.log('current row id is ' + rowID);
+                self.db.volume.get(sql.CHECK_FINISH_VOLUME,[rowID], function(err, row){
+                    if (row.CNT > 0) {
+                        console.log("change to next volume");
+                    }else{
+                        console.log('not match last record yet');
+                    }
+                });
+            }
         }
     };
     finish_event_emitter.addListener('finish', finish_callback);
