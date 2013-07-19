@@ -24,7 +24,7 @@ var init_volume = function(callback){//{{{
             self.volume_id = row.VOLUME;
         }
         console.log('open volume file in ' + self.config.path + '/volume.db');
-        self.volume = new sqlite3.cached.Database(self.config.path + '/volume.db')
+        self.volume = new sqlite3.Database(self.config.path + '/volume.db')
         self.volume.serialize(function(){
             console.log('init writer volume file');
             self.volume.run(sql.CREATE_SQL);
@@ -54,12 +54,15 @@ var rotate = function(callback){//{{{
     console.log('rotate volume file');
     var old_name = this.config.path + '/volume.db';
     var new_name = this.config.path + '/volume_' + this.volume_id + '.db';
+    this.volume.close();
     fs.rename(old_name, new_name, function(){ // rename to volume_id.db
+        var origin_volume = self.volume;
         self.volume_id += 1;
-        console.log('open new volume ' + old_name);
-        self.volume = new sqlite3.cached.Database(old_name);
-        self.volume.run(sql.CREATE_SQL);
+        console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
+        self.volume = new sqlite3.Database(old_name);
         self.volume.serialize(function(){
+            console.log('init new volume file');
+            self.volume.run(sql.CREATE_SQL);
             self.volume.run(sql.CREATE_META_SQL);
             self.volume.run(sql.INSERT_META_SQL, [0, self.volume_id]);
         });
@@ -69,7 +72,10 @@ var rotate = function(callback){//{{{
                 self.callbacks[i](self.volume_id, self.volume);
             }            
             self.callbacks = [];
-            fs.chmod(new_name, '444'); // set to readonly mode.
+            fs.chmod(new_name, '444', function(){
+                console.log('update origin volume last record');
+                origin_volume.run(sql.UPDATE_VOLUME_META);
+            }); // set to readonly mode.
         });
     });
 };//}}}
@@ -128,7 +134,7 @@ var init_reader = function(index, callback){//{{{
             console.log('copy meta from index 0 ');
             self.meta.run(sql.INSERT_LAST_META_SQL, [index], function(err){
                 console.log(err);
-                arguments.callee.caller.caller(index, callback);         
+                self.init_reader(index, callback);         
             }); 
         } else {
             console.log('last record for ' + index +' is ' + row.VOLUME);
@@ -142,7 +148,7 @@ var init_reader = function(index, callback){//{{{
                     self.is_latest = true;
                 }
                 console.log('open volume file ' + self.volume_file);
-                self.volume = new sqlite3.cached.Database(self.volume_file);
+                self.volume = new sqlite3.Database(self.volume_file);
                 callback();
             });
         }
