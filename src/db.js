@@ -54,9 +54,10 @@ var rotate = function(callback){//{{{
     console.log('rotate volume file');
     var old_name = this.config.path + '/volume.db';
     var new_name = this.config.path + '/volume_' + this.volume_id + '.db';
-    this.volume.close();
-    fs.rename(old_name, new_name, function(){ // rename to volume_id.db
-        var origin_volume = self.volume;
+    this.volume.run(sql.UPDATE_VOLUME_META, function(){
+        fs.chmod(new_name, '444');
+        self.volume.close();
+        fs.renameSync(old_name, new_name);
         self.volume_id += 1;
         console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
         self.volume = new sqlite3.Database(old_name);
@@ -72,10 +73,6 @@ var rotate = function(callback){//{{{
                 self.callbacks[i](self.volume_id, self.volume);
             }            
             self.callbacks = [];
-            fs.chmod(new_name, '444', function(){
-                console.log('update origin volume last record');
-                origin_volume.run(sql.UPDATE_VOLUME_META);
-            }); // set to readonly mode.
         });
     });
 };//}}}
