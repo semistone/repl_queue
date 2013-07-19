@@ -25,7 +25,7 @@ var get_last_record_and_loop_message = function(index, finish_callback) {//{{{
      *
      */
     var loop_message = function(last_record){//{{{
-        self.volume.each(sql.SELECT_SQL, [last_record], function(err, row){
+        self.db.volume.each(sql.SELECT_SQL, [last_record], function(err, row){
             working_queue.push(row);
             console.log('push id ' + row.ID);
         }, self.each_complete_callback);
@@ -35,10 +35,10 @@ var get_last_record_and_loop_message = function(index, finish_callback) {//{{{
      * get last record and start loop message.
      *
      */
-    this.meta.get(sql.SELECT_META_SQL, [index],function(error, row) {
+    this.db.meta.get(sql.SELECT_META_SQL, [index],function(error, row) {
         tableExists = (row != undefined);
         if (!tableExists) {
-            self.meta.run(sql.INSERT_META_SQL, [index, 0], function(){
+            self.db.meta.run(sql.INSERT_META_SQL, [index, 0], function(){
                 console.log("insert meta done");    
                 loop_message(0);
             });
@@ -95,11 +95,7 @@ var index_handler = function(index){//{{{
     this.processing = false; // if message loop is processing
     this.index = index;
     this.db.init_reader(index, function(){
-        self.volume_file = self.db.volume_file
-        self.volume = self.db.volume;    
-        self.meta = self.db.meta;
-        self.is_latest = self.db.is_latest;
-        if(self.is_latest){ // only latest file need to watch
+        if(self.db.is_latest){ // only latest file need to watch
             self.watchfile();
         } else{
             self.loop_scan_message();
@@ -114,9 +110,9 @@ var index_handler = function(index){//{{{
  */
 var watchfile= function(){//{{{
     var self = this;
-    console.log("watching " + this.volume_file);
+    console.log("watching " + this.db.volume_file);
     this.loop_scan_message();
-    fs.watchFile(this.volume_file, function(curr,prev) {
+    fs.watchFile(this.db.volume_file, function(curr,prev) {
         if (curr.mtime == prev.mtime) {
             console.log("mtime equal");
         } else {
@@ -134,14 +130,14 @@ var watchfile= function(){//{{{
  */
 var kill = function(){//{{{
     var self = this;
-    console.log('unwatch ' + this.volume_file);
-    fs.unwatchFile(this.volume_file);
+    console.log('unwatch ' + this.db.volume_file);
+    fs.unwatchFile(this.db.volume_file);
     killed = true;
     fifo.kill(function(){
         console.log('close volme.db');
-        self.volume.close();
+        self.db.volume.close();
         console.log('close meta.db');
-        self.meta.close();
+        self.db.meta.close();
     });
 };//}}}
 

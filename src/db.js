@@ -25,8 +25,13 @@ var init_volume = function(callback){//{{{
         }
         console.log('open volume file in ' + self.config.path + '/volume.db');
         self.volume = new sqlite3.cached.Database(self.config.path + '/volume.db')
-        self.volume.run(sql.CREATE_SQL, function(){
-            callback(self.volume_id, self.volume);
+        self.volume.serialize(function(){
+            console.log('init writer volume file');
+            self.volume.run(sql.CREATE_SQL);
+            self.volume.run(sql.CREATE_META_SQL);
+            self.volume.run(sql.INSERT_VOLUME_META, self.volume_id, function(){
+                callback(self.volume_id, self.volume);
+            });
         });
     });
 
@@ -54,6 +59,10 @@ var rotate = function(callback){//{{{
         console.log('open new volume ' + old_name);
         self.volume = new sqlite3.cached.Database(old_name);
         self.volume.run(sql.CREATE_SQL);
+        self.volume.serialize(function(){
+            self.volume.run(sql.CREATE_META_SQL);
+            self.volume.run(sql.INSERT_META_SQL, [0, self.volume_id]);
+        });
         console.log('update writer volume id to ' + self.volume_id);
         self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function(){
             for(var i in this.callbacks){
@@ -101,6 +110,7 @@ var insert = function(req_id, cmd, body, callback){//{{{
  */
 var init_db = function(){//{{{
     this.volume.run(sql.CREATE_SQL);
+    this.volume.run(sql.CREATE_META_SQL);
     this.meta.run(sql.CREATE_META_SQL);
 };//}}}
 
