@@ -121,7 +121,7 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
                 } else { // task fail
                     console.log('consume false retry:' + retry + ' for id:' + row.ID);
                     retry++;
-                    if (retry > 3) {
+                    if (retry > constants.settings.MAX_RETRY) {
                         throw new Error('retry to many times');
                     }
                     if (check_kill(killed)) {
@@ -132,7 +132,7 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
                     //
                     setTimeout(function () {
                         reader.consumer_function(row, consume_result_callback); // self = function (consume_status) itself
-                    }, 3000);
+                    }, constants.settings.RETRY_INTERVAL);
                 }
             };//}}}
             reader.consumer_function(row, consume_result_callback);

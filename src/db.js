@@ -2,7 +2,7 @@ var sqlite3 = require('sqlite3').verbose(),
     fs = require('fs'),
     constants = require('./constants.js'),
     sql = constants.sql,
-    VOLUME_SIZE = 30;
+    VOLUME_SIZE = constants.settings.VOLUME_SIZE;
 
 var init_volume = function (callback) {//{{{
     "use strict";

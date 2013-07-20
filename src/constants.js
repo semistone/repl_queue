@@ -41,3 +41,8 @@ module.exports.sql = {
     UPDATE_VOLUME_META: UPDATE_VOLUME_META,
     CHECK_FINISH_VOLUME: CHECK_FINISH_VOLUME
 };
+module.exports.settings = {
+    VOLUME_SIZE: 30,
+    RETRY_INTERVAL: 3000,
+    MAX_RETRY: 3
+};

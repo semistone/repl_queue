@@ -8,6 +8,7 @@ var fs = require('fs'),
     config = require('./example/config.js'),
     DELIMITER = '/',
     killed = false, // if kill signal fired, then killed = true
+    VOLUME_SIZE = constants.settings.VOLUME_SIZE,
     index_handlers = {};
 /**
  * loop message from sql
@@ -86,7 +87,7 @@ var loop_scan_message = function () {//{{{
             }
             console.log('end scan message and stop processing row id is ' + rowID);
             self.processing = false;
-            if (rowID > 30) {
+            if (rowID > VOLUME_SIZE) {
                 console.log('current row id is ' + rowID);
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
                     if (row.CNT > 0) {
