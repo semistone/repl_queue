@@ -195,8 +195,10 @@ var binding_signal = function () {//{{{
         'binding_signal': binding_signal,
         'kill': kill
     };
-
-    for (index = 0; index < config.reader.length; index += 1) {
-        index_handlers[index] = new IndexHandler(index);
+    console.log('init reader ' + config.reader);
+    for (index in config.reader) {
+        if (config.reader.hasOwnProperty(index)) {
+            index_handlers[index] = new IndexHandler(index);
+        }
     }
 }());//}}}
