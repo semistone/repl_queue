@@ -1,5 +1,6 @@
-var sql = require('./sql.js'),
+var constants = require('./constants.js'),
     Emitter = require('events').EventEmitter,
+    sql = constants.sql,
     sqlite3 = require('sqlite3').verbose(),
     DELIMITER = '/',
     killed = false,

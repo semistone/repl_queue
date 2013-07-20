@@ -1,6 +1,7 @@
 var sqlite3 = require('sqlite3').verbose(),
     fs = require('fs'),
-    sql = require('./sql.js'),
+    constants = require('./constants.js'),
+    sql = constants.sql,
     VOLUME_SIZE = 30;
 
 var init_volume = function (callback) {//{{{
@@ -73,15 +74,20 @@ var rotate = function (callback) {//{{{
         self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function () {
             var i;
             for (i in self.callbacks) {
-                console.log('rotate finished callback ' + i);
-                self.callbacks[i]();
+                if (self.callbacks.hasOwnProperty(i)) {
+                    console.log('rotate finished callback ' + i);
+                    self.callbacks[i]();
+                }
             }
             self.callbacks = [];
         });
     });
 };//}}}
 
-var constructor = function (config) {//{{{
+/**
+ * DB constructor
+ */
+var DB = function (config) {//{{{
     "use strict";
     this.config = config;
     this.meta = new sqlite3.cached.Database(config.path + '/meta.db');
@@ -159,7 +165,7 @@ var init_reader = function (index, callback) {//{{{
 
 };//}}}
 
-constructor.prototype = {
+DB.prototype = {
     init_volume: init_volume,
     init_db:  init_db,
     init_reader: init_reader,
@@ -167,4 +173,4 @@ constructor.prototype = {
     rotate: rotate
 };
 
-module.exports = constructor;
+module.exports = DB;

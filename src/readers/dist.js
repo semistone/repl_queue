@@ -4,7 +4,8 @@
  */
 var url = require('url'),
     sqlite3 = require('sqlite3').verbose(),
-    sql = require('../sql.js');
+    constants = require('../constants.js'),
+    sql = constants.sql;
 /**
  *
  */

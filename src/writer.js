@@ -6,7 +6,8 @@
  */
 var sqlite3 = require('sqlite3').verbose(),
     Server = require('./server.js'),
-    sql = require('./sql.js'),
+    constants = require('./constants.js'),
+    sql = constants.sql,
     config = require('./example/config.js'),
     DB = require('./db.js'),
     socketlist = [],

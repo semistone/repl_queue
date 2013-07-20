@@ -27,7 +27,7 @@ var INSERT_LAST_META_SQL = "insert into QUEUE_META select ?, VOLUME, LAST_RECORD
 var INSERT_VOLUME_META = "insert or  ignore into QUEUE_META values (0, ?, 0)";
 var UPDATE_VOLUME_META = "update QUEUE_META set LAST_RECORD=(select count(*) from QUEUE_VOLUME) where ID=0";
 var CHECK_FINISH_VOLUME = "select count(*) as CNT from QUEUE_META where ID=0 and LAST_RECORD=?";
-module.exports = {
+module.exports.sql = {
     CREATE_SQL: CREATE_SQL,
     CREATE_META_SQL: CREATE_META_SQL,
     SELECT_SQL: SELECT_SQL,
