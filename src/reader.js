@@ -46,7 +46,7 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
                 loop_message(0);
             });
         } else {
-            console.log('last record for ' + index + ' is ' + row.LAST_RECORD);
+            console.log('last record for index ' + index + ' is ' + row.LAST_RECORD);
             self.last_record = row.LAST_RECORD;
             loop_message(row.LAST_RECORD);
         }
@@ -190,6 +190,7 @@ var rotate = function (callback) {//{{{
         console.log('close volme.db');
         self.db.volume.close();
         self.db.rotate_reader(function (err) {
+            console.log('rotate result err:' + err);
             if (err) {
                 callback(err);
                 return;
@@ -198,6 +199,7 @@ var rotate = function (callback) {//{{{
                 self.watchfile();
             }
             self.killed = false;
+            console.log('rotate success');
             callback();
         });
     });

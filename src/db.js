@@ -45,9 +45,7 @@ var init_volume = function (callback) {//{{{
  */
 var rotate = function (callback) {//{{{
     "use strict";
-    var self = this,
-        old_name = this.config.path + '/volume.db',
-        new_name = this.config.path + '/volume_' + this.volume_id + '.db';
+    var self = this;
     if (this.callbacks !== undefined) {// prevent concurrent 
         this.callbacks.push(callback);
         console.log('rotate volume file push callback');
@@ -57,29 +55,39 @@ var rotate = function (callback) {//{{{
     this.callbacks = [];
     this.callbacks.push(callback);
     console.log('rotate volume file');
-    this.volume.run(sql.UPDATE_VOLUME_META, function () {
-        fs.chmod(new_name, '444');
-        self.volume.close();
-        fs.renameSync(old_name, new_name);
-        self.volume_id += 1;
-        console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
-        self.volume = new sqlite3.Database(old_name);
-        self.volume.serialize(function () {
-            console.log('init new volume file');
-            self.volume.run(sql.CREATE_SQL);
-            self.volume.run(sql.CREATE_META_SQL);
-            self.volume.run(sql.INSERT_META_SQL, [0, self.volume_id]);
-        });
-        console.log('update writer volume id to ' + self.volume_id);
-        self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function () {
-            var i;
-            for (i in self.callbacks) {
-                if (self.callbacks.hasOwnProperty(i)) {
-                    console.log('rotate finished callback ' + i);
-                    self.callbacks[i]();
-                }
-            }
-            self.callbacks = [];
+    self.volume.serialize(function () {
+        // update and get
+        self.volume.run(sql.UPDATE_VOLUME_META);
+        self.volume.get(sql.GET_VOLUME_META, function (err, row) {
+            var after_volume_close;
+            console.log('last record is ' + row.LAST_RECORD);
+            after_volume_close = function () {//{{{
+                var old_name = self.config.path + '/volume.db',
+                    new_name = self.config.path + '/volume_' + self.volume_id + '.db';
+                fs.chmod(old_name, '444');
+                fs.renameSync(old_name, new_name);
+                self.volume_id += 1;
+                console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
+                self.volume = new sqlite3.Database(old_name);
+                self.volume.serialize(function () {
+                    console.log('init new volume file');
+                    self.volume.run(sql.CREATE_SQL);
+                    self.volume.run(sql.CREATE_META_SQL);
+                    self.volume.run(sql.INSERT_META_SQL, [0, self.volume_id]);
+                });
+                console.log('update writer volume id to ' + self.volume_id);
+                self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function () {
+                    var i;
+                    for (i in self.callbacks) {
+                        if (self.callbacks.hasOwnProperty(i)) {
+                            console.log('rotate finished callback ' + i);
+                            self.callbacks[i]();
+                        }
+                    }
+                    self.callbacks = [];
+                });
+            };//}}}
+            self.volume.close(after_volume_close);
         });
     });
 };//}}}
