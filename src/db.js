@@ -131,6 +131,7 @@ var init_db = function () {//{{{
 var init_reader = function (index, callback) {//{{{
     "use strict";
     var self = this;
+    this.index = index;
     /**
      * get last record and start loop message.
      *
@@ -146,23 +147,45 @@ var init_reader = function (index, callback) {//{{{
                 self.init_reader(index, callback);
             });
         } else {
-            console.log('last record for ' + index + ' is ' + row.VOLUME);
+            console.log('last volume for index ' + index + ' is ' + row.VOLUME);
             self.volume_id =  row.VOLUME;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
             self.is_latest = false;
-            fs.stat(self.volume_file, function (err, stat) {
-                console.log('check file exist ' + err);
-                if (err) {
-                    self.volume_file = self.config.path + '/volume.db';
-                    self.is_latest = true;
-                }
-                console.log('open volume file ' + self.volume_file);
-                self.volume = new sqlite3.Database(self.volume_file);
-                callback();
-            });
+            self.create_volume_db(callback);
         }
     });
 
+};//}}}
+
+var create_volume_db = function (callback) {//{{{
+    "use strict";
+    var self = this;
+    this.volume_file = this.config.path + '/volume_' + this.volume_id + '.db';
+    this.is_latest = false;
+    fs.stat(self.volume_file, function (err, stat) {
+        console.log('check file exist err:' + err);
+        if (err) {
+            self.volume_file = self.config.path + '/volume.db';
+            self.is_latest = true;
+        }
+        console.log('open volume file ' + self.volume_file);
+        self.volume = new sqlite3.Database(self.volume_file);
+        callback();
+    });
+};//}}}
+
+var rotate_reader = function (callback) {//{{{
+    "use strict";
+    var self = this;
+    this.volume_id += 1;
+    this.lastID = 0;
+    console.log('rotate reader, update meta to next volume');
+    this.meta.run(sql.ROTATE_READER_META, [this.volume_id, this.index], function (err) {
+        if (err) {
+            callback(err);
+        }
+        self.create_volume_db(callback);
+    });
 };//}}}
 
 DB.prototype = {
@@ -170,7 +193,9 @@ DB.prototype = {
     init_db:  init_db,
     init_reader: init_reader,
     insert: insert,
-    rotate: rotate
+    rotate: rotate,
+    rotate_reader: rotate_reader,
+    create_volume_db: create_volume_db
 };
 
 module.exports = DB;

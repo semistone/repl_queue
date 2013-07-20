@@ -156,13 +156,17 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
  */
 var kill = function (callback) {//{{{
     "use strict";
-    console.log('kill fifo');
     var cnt = fifos.length, i;
+    console.log('kill fifo current cnt is ' + cnt);
+    if (cnt === undefined) {
+        console.log('fifo next init yet');
+        callback();
+    }
     for (i in fifos) {
         if (fifos.hasOwnProperty(i)) {
             if (!fifos[i].processing) {
-                console.log('fifo task not processing');
                 cnt--;
+                console.log('fifo task not processing cnt is ' + cnt);
                 if (cnt === 0) {
                     callback();
                 }

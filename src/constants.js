@@ -27,7 +27,9 @@ var INSERT_LAST_META_SQL = "insert into QUEUE_META select ?, VOLUME, LAST_RECORD
 var INSERT_VOLUME_META = "insert or  ignore into QUEUE_META values (0, ?, 0)";
 var UPDATE_VOLUME_META = "update QUEUE_META set LAST_RECORD=(select count(*) from QUEUE_VOLUME) where ID=0";
 var CHECK_FINISH_VOLUME = "select count(*) as CNT from QUEUE_META where ID=0 and LAST_RECORD=?";
-module.exports.sql = {
+var ROTATE_READER_META = "update QUEUE_META set LAST_RECORD=0, VOLUME=? where ID=?";
+
+module.exports.sql = {//{{{
     CREATE_SQL: CREATE_SQL,
     CREATE_META_SQL: CREATE_META_SQL,
     SELECT_SQL: SELECT_SQL,
@@ -39,10 +41,13 @@ module.exports.sql = {
     UPDATE_META_VOLUME_SQL: UPDATE_META_VOLUME_SQL,
     INSERT_VOLUME_META: INSERT_VOLUME_META,
     UPDATE_VOLUME_META: UPDATE_VOLUME_META,
-    CHECK_FINISH_VOLUME: CHECK_FINISH_VOLUME
-};
-module.exports.settings = {
+    CHECK_FINISH_VOLUME: CHECK_FINISH_VOLUME,
+    ROTATE_READER_META: ROTATE_READER_META
+};//}}}
+
+
+module.exports.settings = {//{{{
     VOLUME_SIZE: 30,
     RETRY_INTERVAL: 3000,
     MAX_RETRY: 3
-};
+};//}}}

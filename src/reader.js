@@ -7,7 +7,6 @@ var fs = require('fs'),
     fifo = require('./fifo.js'),
     config = require('./example/config.js'),
     DELIMITER = '/',
-    killed = false, // if kill signal fired, then killed = true
     VOLUME_SIZE = constants.settings.VOLUME_SIZE,
     index_handlers = {};
 /**
@@ -72,7 +71,7 @@ var loop_scan_message = function () {//{{{
     this.processing = true;
     finish_callback = function (rows, rowID) {
         console.log('finish callback');
-        if (killed) { // killed signal fired, stop loop.
+        if (self.killed) { // killed signal fired, stop loop.
             finish_event_emitter.removeAllListeners();
             return;
         }
@@ -90,8 +89,18 @@ var loop_scan_message = function () {//{{{
             if (rowID > VOLUME_SIZE) {
                 console.log('current row id is ' + rowID);
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
+                    if (err) {
+                        console.log('not match last record yet err ' + err);
+                    }
                     if (row.CNT > 0) {
                         console.log("change to next volume");
+                        self.rotate(function (err) { // rotate success then continue loop
+                            if (err) {
+                                console.log('rotate error ' + err);
+                                return;
+                            }
+                            self.loop_scan_message();
+                        });
                     } else {
                         console.log('not match last record yet');
                     }
@@ -154,13 +163,41 @@ var kill = function () {//{{{
     "use strict";
     var self = this;
     console.log('unwatch ' + this.db.volume_file);
-    fs.unwatchFile(this.db.volume_file);
-    killed = true;
+    if (this.db.is_latest) {
+        fs.unwatchFile(this.db.volume_file);
+    }
+    self.killed = true;
     fifo.kill(function () {
         console.log('close volme.db');
         self.db.volume.close();
         console.log('close meta.db');
         self.db.meta.close();
+    });
+};//}}}
+
+
+var rotate = function (callback) {//{{{
+    "use strict";
+    var self = this;
+    if (this.db.is_latest) {
+        console.log('unwatch ' + this.db.volume_file);
+        fs.unwatchFile(this.db.volume_file);
+    }
+    this.killed = true;
+    fifo.kill(function () {
+        console.log('close volme.db');
+        self.db.volume.close();
+        self.db.rotate_reader(function (err) {
+            if (err) {
+                callback(err);
+                return;
+            }
+            if (self.db.is_latest) { // only latest file need to watch
+                self.watchfile();
+            }
+            self.killed = false;
+            callback();
+        });
     });
 };//}}}
 
@@ -195,7 +232,9 @@ var binding_signal = function () {//{{{
         'get_last_record_and_loop_message': get_last_record_and_loop_message,
         'watchfile': watchfile,
         'binding_signal': binding_signal,
-        'kill': kill
+        'kill': kill,
+        'rotate': rotate,
+        'killed': false, // if kill signal fired, then killed = true
     };
     console.log('init reader ' + config.reader);
     for (index in config.reader) {
