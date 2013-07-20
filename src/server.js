@@ -4,8 +4,11 @@ var http = require('http');
  *
  *
  */
-var kill = function(fn){//{{{
-    if(this.closed) return;
+var kill = function (fn) {//{{{
+    "use strict";
+    if (this.closed) {
+        return;
+    }
     this.http.close(fn);
     this.closed = true;
     this.http = undefined;
@@ -15,21 +18,23 @@ var kill = function(fn){//{{{
  * server constructor 
  *
  */
-var constructor = function(config) {//{{{
-    if ( arguments.callee._singletonInstance )
-        return arguments.callee._singletonInstance;
-    arguments.callee._singletonInstance = this;
+var constructor = function (config) {//{{{
+    "use strict";
+    if (constructor.singletonInstance) {
+        return constructor.singletonInstance;
+    }
+    constructor.singletonInstance = this;
 
     this.closed = false;
     this.http = http.createServer().listen(config.server.listen);
-    if (config.server.socketio_handler_enable == true) {
+    if (config.server.socketio_handler_enable === true) {
         var socket_io = require('socket.io');
         this.io = socket_io.listen(this.http);
-        this.io.static = false;
+        this.io.set('static', false);
     }
 
-    this.http.on('close', function(){
-        console.log('server closed');        
+    this.http.on('close', function () {
+        console.log('server closed');
     });
     this.kill =  kill;
     return this;
