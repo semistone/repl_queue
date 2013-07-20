@@ -87,11 +87,12 @@ var rotate = function (callback) {//{{{
 /**
  * DB constructor
  */
-var DB = function (config) {//{{{
+var DB = function (config, callback) {//{{{
     "use strict";
+    console.log('new DB');
     this.config = config;
     this.meta = new sqlite3.cached.Database(config.path + '/meta.db');
-    this.meta.run(sql.CREATE_META_SQL);
+    this.meta.run(sql.CREATE_META_SQL, callback);
 };//}}}
 
 var insert = function (req_id, cmd, body, callback) {//{{{
@@ -132,12 +133,13 @@ var init_reader = function (index, callback) {//{{{
     "use strict";
     var self = this;
     this.index = index;
+    this.meta.run(sql.INSERT_META_SQL, [index, 0]);
     /**
      * get last record and start loop message.
      *
      */
     this.meta.get(sql.SELECT_META_SQL, [index], function (error, row) {
-        console.log('get meta');
+        console.log('get meta err: ' + error);
         var tableExists = (row !== undefined);
         if (!tableExists) {
             // todo 
@@ -154,7 +156,6 @@ var init_reader = function (index, callback) {//{{{
             self.create_volume_db(callback);
         }
     });
-
 };//}}}
 
 var create_volume_db = function (callback) {//{{{

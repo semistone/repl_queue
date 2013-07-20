@@ -91,6 +91,7 @@ var loop_scan_message = function () {//{{{
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
                     if (err) {
                         console.log('not match last record yet err ' + err);
+                        return;
                     }
                     if (row.CNT > 0) {
                         console.log("change to next volume");
@@ -121,16 +122,17 @@ var loop_scan_message = function () {//{{{
 var IndexHandler = function (index) {//{{{
     "use strict";
     var self = this;
-    this.db = new DB(config);
     this.processing = false; // if message loop is processing
     this.index = index;
-    this.db.init_reader(index, function () {
-        if (self.db.is_latest) { // only latest file need to watch
-            self.watchfile();
-        } else {
-            self.loop_scan_message();
-        }
-        self.binding_signal();
+    this.db = new DB(config, function () {
+        self.db.init_reader(index, function () {
+            if (self.db.is_latest) { // only latest file need to watch
+                self.watchfile();
+            } else {
+                self.loop_scan_message();
+            }
+            self.binding_signal();
+        });
     });
 };//}}}
 
