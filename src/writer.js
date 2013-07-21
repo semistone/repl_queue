@@ -13,8 +13,7 @@ var sqlite3 = require('sqlite3').verbose(),
     socketlist = [],
     match = /\/repl\/([a-z,A-Z]*)\/([a-z,A-Z]*)\/?([a-z,A-Z]*)/;
 
-var volume,
-    db = new DB(config),
+var db = new DB(config),
     server = new Server(config),
     closed = false;
 
@@ -105,7 +104,7 @@ var kill = function () {//{{{
         socket.disconnect();
         console.log('server socket disconnect');
     });
-    volume.close();
+    db.volume.close();
     closed = true;
 };//}}}
 
@@ -130,8 +129,7 @@ var binding_signal = function () {//{{{
  */
 (function () {//{{{
     "use strict";
-    db.init_volume(function (a_volume_id, a_volume) {
-        volume = a_volume;
+    db.init_writer(function () {
         if (config.writer === undefined) {
             console.log('writer not exist');
             return;

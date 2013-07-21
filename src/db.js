@@ -4,10 +4,11 @@ var sqlite3 = require('sqlite3').verbose(),
     sql = constants.sql,
     VOLUME_SIZE = constants.settings.VOLUME_SIZE;
 
-var init_volume = function (callback) {//{{{
+var init_writer = function (callback) {//{{{
     "use strict";
     var self = this;
     this.volume_id = 0;
+    this.volume_file = self.config.path + '/volume_0.db';
     /**
      * get last record and start loop message.
      *
@@ -18,21 +19,22 @@ var init_volume = function (callback) {//{{{
         if (!tableExists) {
             self.meta.serialize(function () {
                 self.meta.run(sql.INSERT_META_SQL, [0, 0], function () {
-                    console.log("insert writer meta done");
+                    console.log("insert init writer meta done");
                 });
             });
         } else {
             console.log('last volume for writer is ' + row.VOLUME);
             self.volume_id = row.VOLUME;
+            self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
         }
-        console.log('open volume file in ' + self.config.path + '/volume.db');
-        self.volume = new sqlite3.Database(self.config.path + '/volume.db');
+        console.log('open volume file in ' + self.volume_file);
+        self.volume = new sqlite3.Database(self.volume_file);
         self.volume.serialize(function () {
             console.log('init writer volume file');
             self.volume.run(sql.CREATE_SQL);
             self.volume.run(sql.CREATE_META_SQL);
             self.volume.run(sql.INSERT_VOLUME_META, self.volume_id, function () {
-                callback(self.volume_id, self.volume);
+                callback();
             });
         });
     });
@@ -46,8 +48,8 @@ var init_volume = function (callback) {//{{{
 var rotate = function (callback) {//{{{
     "use strict";
     var self = this,
-        old_name = self.config.path + '/volume.db',
-        new_name = self.config.path + '/volume_' + self.volume_id + '.db';
+        new_name,
+        old_name = self.config.path + '/volume_' + self.volume_id + '.db';
     if (this.callbacks !== undefined) {// prevent concurrent 
         this.callbacks.push(callback);
         console.log('rotate volume file push callback');
@@ -64,10 +66,11 @@ var rotate = function (callback) {//{{{
             var after_volume_close;
             console.log('last record is ' + row.LAST_RECORD);
             after_volume_close = function () {//{{{
-                //fs.chmodSync(old_name, '444');
+                fs.chmod(old_name, '444');
                 self.volume_id += 1;
-                console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
-                self.volume = new sqlite3.Database(old_name);
+                new_name = self.config.path + '/volume_' + self.volume_id + '.db';
+                console.log('open new volume ' + new_name + ' new volume id is ' + self.volume_id);
+                self.volume = new sqlite3.Database(new_name);
                 self.volume.serialize(function () {
                     console.log('init new volume file');
                     self.volume.run(sql.CREATE_SQL);
@@ -86,10 +89,7 @@ var rotate = function (callback) {//{{{
                     self.callbacks = undefined;
                 });
             };//}}}
-            self.volume.close(function() {
-                console.log('rename volume from ' + old_name + ' to ' + new_name);
-                fs.rename(old_name, new_name, after_volume_close);
-            });
+            self.volume.close(after_volume_close);
         });
     });
 };//}}}
@@ -170,33 +170,28 @@ var init_reader = function (index, callback) {//{{{
 
 var create_volume_db = function (callback, sqlite_mode) {//{{{
     "use strict";
-    var self = this, open_default_volume;
+    var self = this;
     this.volume_file = this.config.path + '/volume_' + this.volume_id + '.db';
     this.is_latest = false;
-    open_default_volume = function() {
-        console.log('open volume file ' + self.volume_file);
-        fs.stat(self.volume_file, function (err, stat) {
-            if (err) {
-                console.log('check default volume file exist err:' + err + ' do retry');
-                setTimeout(function(){
-                    console.log('retry');
-                    open_default_volume();
-                }, constants.settings.RETRY_INTERVAL);
-            } else {
-                self.volume = new sqlite3.Database(self.volume_file, sqlite_mode);
-                if (callback !== undefined) {
-                    callback();
-                }
-            }
-        });
-    };
+    console.log('open volume file ' + self.volume_file);
     fs.stat(self.volume_file, function (err, stat) {
         console.log('check file exist err:' + err);
         if (err) {
-            self.volume_file = self.config.path + '/volume.db';
-            self.is_latest = true;
+            setTimeout(function () {
+                console.log('retry');
+                self.create_volume_db(callback, sqlite_mode);
+            }, constants.settings.RETRY_INTERVAL);
+        } else {
+            self.volume = new sqlite3.Database(self.volume_file, sqlite_mode);
+            self.meta.get(sql.SELECT_META_SQL, [0], function (err, row) {
+                if (row.VOLUME === self.volume_id) {
+                    self.is_latest = true;
+                }
+                if (callback !== undefined) {
+                    callback();
+                }
+            });
         }
-        open_default_volume();
     });
 };//}}}
 
@@ -215,7 +210,7 @@ var rotate_reader = function (callback) {//{{{
 };//}}}
 
 DB.prototype = {
-    init_volume: init_volume,
+    init_writer: init_writer,
     init_db:  init_db,
     init_reader: init_reader,
     insert: insert,
