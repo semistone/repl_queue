@@ -142,6 +142,7 @@ var init_db = function () {//{{{
 var init_reader = function (index, callback) {//{{{
     "use strict";
     var self = this;
+    this.watch_callback = callback;
     this.index = index;
     this.meta.run(sql.INSERT_META_SQL, [index, 0]);
     /**
@@ -163,7 +164,12 @@ var init_reader = function (index, callback) {//{{{
             self.volume_id =  row.VOLUME;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
             self.is_latest = false;
-            self.create_volume_db(callback, sqlite3.OPEN_READONLY);
+            self.create_volume_db(function () {
+                if (self.is_latest) { // only latest file need to watch
+                    self.watchfile(callback);
+                }
+                callback();
+            }, sqlite3.OPEN_READONLY);
         }
     });
 };//}}}
@@ -201,12 +207,46 @@ var rotate_reader = function (callback) {//{{{
     this.volume_id += 1;
     this.lastID = 0;
     console.log('rotate reader, update meta to next volume');
+    if (this.is_latest) {
+        console.log('unwatch ' + this.volume_file);
+        this.watchfs.close();
+    }
+    this.volume.close();
     this.meta.run(sql.ROTATE_READER_META, [this.volume_id, this.index], function (err) {
         if (err) {
             callback(err);
+            return;
         }
-        self.create_volume_db(callback, sqlite3.OPEN_READONLY);
+        self.create_volume_db(function () {
+            if (self.is_latest) { // only latest file need to watch
+                self.watchfile(self.watch_callback);
+            }
+            callback();
+        }, sqlite3.OPEN_READONLY);
     });
+};//}}}
+
+/**
+ * start watch db file
+ *
+ */
+var watchfile = function (callback) {//{{{
+    "use strict";
+    console.log("watching " + this.volume_file);
+    this.watchfs = fs.watch(this.volume_file, function (action, filename) {
+        callback();
+    });
+};//}}}
+
+var kill = function () {//{{{
+    "use strict";
+    console.log('close volme.db');
+    this.volume.close();
+    console.log('close meta.db');
+    this.meta.close();
+    if (this.is_latest) {
+        this.watchfs.close();
+    }
 };//}}}
 
 DB.prototype = {
@@ -216,7 +256,9 @@ DB.prototype = {
     insert: insert,
     rotate_writer: rotate_writer,
     rotate_reader: rotate_reader,
-    create_volume_db: create_volume_db
+    create_volume_db: create_volume_db,
+    watchfile: watchfile,
+    kill: kill
 };
 
 module.exports = DB;

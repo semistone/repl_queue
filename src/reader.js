@@ -107,7 +107,7 @@ var loop_scan_message = function () {//{{{
                     }
                     if (row.CNT > 0) {
                         console.log("change to next volume");
-                        self.rotate(function (err) { // rotate success then continue loop
+                        self.db.rotate_reader(function (err) { // rotate success then continue loop
                             if (err) {
                                 console.log('rotate error ' + err);
                                 return;
@@ -141,28 +141,10 @@ var IndexHandler = function (index) {//{{{
     this.index = index;
     this.db = new DB(config, function () {
         self.db.init_reader(index, function () {
-            if (self.db.is_latest) { // only latest file need to watch
-                self.watchfile();
-            } else {
-                self.loop_scan_message();
-            }
-            self.binding_signal();
+            self.loop_scan_message();
         });
     });
-};//}}}
-
-/**
- * start watch db file  -> loop_scan_message
- *
- */
-var watchfile = function () {//{{{
-    "use strict";
-    var self = this;
-    console.log("watching " + this.db.volume_file);
-    this.loop_scan_message();
-    this.watchfs = fs.watch(this.db.volume_file, function (action, filename) {
-        self.loop_scan_message();
-    });
+    this.binding_signal();
 };//}}}
 
 
@@ -174,42 +156,12 @@ var watchfile = function () {//{{{
 var kill = function () {//{{{
     "use strict";
     var self = this;
-    console.log('unwatch ' + this.db.volume_file);
-    if (this.db.is_latest) {
-        this.watchfs.close();
-    }
     self.killed = true;
     fifo.kill(function () {
-        console.log('close volme.db');
-        self.db.volume.close();
-        console.log('close meta.db');
-        self.db.meta.close();
+        self.db.kill();
     });
 };//}}}
 
-
-var rotate = function (callback) {//{{{
-    "use strict";
-    var self = this;
-    if (this.db.is_latest) {
-        console.log('unwatch ' + this.db.volume_file);
-        this.watchfs.close();
-    }
-    console.log('close volme.db');
-    self.db.volume.close();
-    self.db.rotate_reader(function (err) {
-        console.log('rotate result err:' + err);
-        if (err) {
-            callback(err);
-            return;
-        }
-        if (self.db.is_latest) { // only latest file need to watch
-            self.watchfile();
-        }
-        console.log('rotate success');
-        callback();
-    });
-};//}}}
 
 /**
  * bind kill signal
@@ -240,10 +192,8 @@ var binding_signal = function () {//{{{
     IndexHandler.prototype = {
         'loop_scan_message': loop_scan_message,
         'get_last_record_and_loop_message': get_last_record_and_loop_message,
-        'watchfile': watchfile,
         'binding_signal': binding_signal,
         'kill': kill,
-        'rotate': rotate,
         'killed': false, // if kill signal fired, then killed = true
     };
     console.log('init reader ' + config.reader);
