@@ -85,7 +85,6 @@ var loop_scan_message = function () {//{{{
                 rowID = self.last_record;
             }
             console.log('end scan message and stop processing row id is ' + rowID);
-            self.processing = false;
             if (rowID > VOLUME_SIZE) {
                 console.log('current row id is ' + rowID);
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
@@ -100,12 +99,14 @@ var loop_scan_message = function () {//{{{
                                 console.log('rotate error ' + err);
                                 return;
                             }
-                            self.loop_scan_message();
+                            self.get_last_record_and_loop_message(self.index, finish_callback);
                         });
                     } else {
                         console.log('not match last record yet');
                     }
                 });
+            } else {
+                self.processing = false;
             }
         }
     };
@@ -185,23 +186,19 @@ var rotate = function (callback) {//{{{
         console.log('unwatch ' + this.db.volume_file);
         fs.unwatchFile(this.db.volume_file);
     }
-    this.killed = true;
-    fifo.kill(function () {
-        console.log('close volme.db');
-        self.db.volume.close();
-        self.db.rotate_reader(function (err) {
-            console.log('rotate result err:' + err);
-            if (err) {
-                callback(err);
-                return;
-            }
-            if (self.db.is_latest) { // only latest file need to watch
-                self.watchfile();
-            }
-            self.killed = false;
-            console.log('rotate success');
-            callback();
-        });
+    console.log('close volme.db');
+    self.db.volume.close();
+    self.db.rotate_reader(function (err) {
+        console.log('rotate result err:' + err);
+        if (err) {
+            callback(err);
+            return;
+        }
+        if (self.db.is_latest) { // only latest file need to watch
+            self.watchfile();
+        }
+        console.log('rotate success');
+        callback();
     });
 };//}}}
 

@@ -84,7 +84,7 @@ var rotate = function (callback) {//{{{
                             self.callbacks[i]();
                         }
                     }
-                    self.callbacks = [];
+                    self.callbacks = undefined;
                 });
             };//}}}
             self.volume.close(after_volume_close);
