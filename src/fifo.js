@@ -51,18 +51,18 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
             self.processing = false;
             return;
         }
-        check_kill = function (killed) {
+        //
+        // if killed, then remove event emitter to prevent next event 
+        //
+        check_kill = function (killed) {//{{{
             if (killed) {
-                console.log('killed signal fired');
+                console.log('fifo killed event fired');
                 event_emitter.removeAllListeners();
-                if (reader.kill) {
-                    reader.kill();
-                }
                 killed();
                 return true;
             }
             return false;
-        };
+        };//}}}
 
         /**
          * serialize execute task.
@@ -76,10 +76,6 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
             if (working_queue.length === 0) { // all task done
                 return;
             }
-            if (check_kill(killed)) {
-                return;
-            }
-
             row = working_queue.shift();
             console.log('consume row ' + row.ID);
 
@@ -102,6 +98,9 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
                 update_meta_finish = function (row) {//{{{
                     console.log('update meta finish id:' + row.ID);
                     remain_cnt--;
+                    if (check_kill(killed)) {
+                        return false;
+                    }
                     if (remain_cnt === 0) {
                         finish_callback(queue_size, self.rowID);
                         self.processing = false;
@@ -156,7 +155,7 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
  */
 var kill = function (callback) {//{{{
     "use strict";
-    var cnt = fifos.length, i;
+    var cnt = Object.keys(fifos).length, i;
     console.log('kill fifo current cnt is ' + cnt);
     if (cnt === undefined) {
         console.log('fifo next init yet');

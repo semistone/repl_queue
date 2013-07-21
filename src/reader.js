@@ -156,7 +156,7 @@ var IndexHandler = function (index) {//{{{
 var kill = function () {//{{{
     "use strict";
     var self = this;
-    self.killed = true;
+    this.killed = true;
     fifo.kill(function () {
         self.db.kill();
     });
