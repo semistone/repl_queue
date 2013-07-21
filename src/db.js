@@ -45,7 +45,9 @@ var init_volume = function (callback) {//{{{
  */
 var rotate = function (callback) {//{{{
     "use strict";
-    var self = this;
+    var self = this,
+        old_name = self.config.path + '/volume.db',
+        new_name = self.config.path + '/volume_' + self.volume_id + '.db';
     if (this.callbacks !== undefined) {// prevent concurrent 
         this.callbacks.push(callback);
         console.log('rotate volume file push callback');
@@ -62,10 +64,7 @@ var rotate = function (callback) {//{{{
             var after_volume_close;
             console.log('last record is ' + row.LAST_RECORD);
             after_volume_close = function () {//{{{
-                var old_name = self.config.path + '/volume.db',
-                    new_name = self.config.path + '/volume_' + self.volume_id + '.db';
-                fs.chmod(old_name, '444');
-                fs.renameSync(old_name, new_name);
+                //fs.chmodSync(old_name, '444');
                 self.volume_id += 1;
                 console.log('open new volume ' + old_name + ' new volume id is ' + self.volume_id);
                 self.volume = new sqlite3.Database(old_name);
@@ -87,7 +86,10 @@ var rotate = function (callback) {//{{{
                     self.callbacks = undefined;
                 });
             };//}}}
-            self.volume.close(after_volume_close);
+            self.volume.close(function() {
+                console.log('rename volume from ' + old_name + ' to ' + new_name);
+                fs.rename(old_name, new_name, after_volume_close);
+            });
         });
     });
 };//}}}
@@ -161,25 +163,40 @@ var init_reader = function (index, callback) {//{{{
             self.volume_id =  row.VOLUME;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
             self.is_latest = false;
-            self.create_volume_db(callback);
+            self.create_volume_db(callback, sqlite3.OPEN_READONLY);
         }
     });
 };//}}}
 
-var create_volume_db = function (callback) {//{{{
+var create_volume_db = function (callback, sqlite_mode) {//{{{
     "use strict";
-    var self = this;
+    var self = this, open_default_volume;
     this.volume_file = this.config.path + '/volume_' + this.volume_id + '.db';
     this.is_latest = false;
+    open_default_volume = function() {
+        console.log('open volume file ' + self.volume_file);
+        fs.stat(self.volume_file, function (err, stat) {
+            if (err) {
+                console.log('check default volume file exist err:' + err + ' do retry');
+                setTimeout(function(){
+                    console.log('retry');
+                    open_default_volume();
+                }, constants.settings.RETRY_INTERVAL);
+            } else {
+                self.volume = new sqlite3.Database(self.volume_file, sqlite_mode);
+                if (callback !== undefined) {
+                    callback();
+                }
+            }
+        });
+    };
     fs.stat(self.volume_file, function (err, stat) {
         console.log('check file exist err:' + err);
         if (err) {
             self.volume_file = self.config.path + '/volume.db';
             self.is_latest = true;
         }
-        console.log('open volume file ' + self.volume_file);
-        self.volume = new sqlite3.Database(self.volume_file);
-        callback();
+        open_default_volume();
     });
 };//}}}
 
@@ -193,7 +210,7 @@ var rotate_reader = function (callback) {//{{{
         if (err) {
             callback(err);
         }
-        self.create_volume_db(callback);
+        self.create_volume_db(callback, sqlite3.OPEN_READONLY);
     });
 };//}}}
 

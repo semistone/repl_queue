@@ -17,7 +17,8 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
     var last_update_rows = 0,
         working_queue = [],
         loop_message,
-        self = this;
+        self = this,
+        retry = 0;
     /**
      * use fifo sub module to consume working queue.
      */
@@ -29,6 +30,18 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
      */
     loop_message = function (last_record) {//{{{
         self.db.volume.each(sql.SELECT_SQL, [last_record], function (err, row) {
+            if (err) {
+                console.log('query next record error:' + err + ' reopen again');
+                self.db.create_volume_db(function(){
+                    console.log('retry '); 
+                    retry ++;
+                    if (retry < constants.settings.MAX_RETRY) {
+                        //loop_message(last_record);
+                    }
+                }, sqlite3.OPEN_READONLY);
+                return;
+            }
+            retry = 0; 
             working_queue.push(row);
             console.log('push id ' + row.ID);
         }, self.each_complete_callback);
@@ -106,6 +119,7 @@ var loop_scan_message = function () {//{{{
                     }
                 });
             } else {
+                console.log('set processing false');
                 self.processing = false;
             }
         }
