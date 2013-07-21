@@ -134,7 +134,7 @@ var loop_scan_message = function () {//{{{
  *     get_last_record_and_loop_message
  *
  */
-var IndexHandler = function (index) {//{{{
+var Reader = function (index) {//{{{
     "use strict";
     var self = this;
     this.processing = false; // if message loop is processing
@@ -189,7 +189,7 @@ var binding_signal = function () {//{{{
 (function () {//{{{
     "use strict";
     var index;
-    IndexHandler.prototype = {
+    Reader.prototype = {
         'loop_scan_message': loop_scan_message,
         'get_last_record_and_loop_message': get_last_record_and_loop_message,
         'binding_signal': binding_signal,
@@ -199,7 +199,7 @@ var binding_signal = function () {//{{{
     console.log('init reader ' + config.reader);
     for (index in config.reader) {
         if (config.reader.hasOwnProperty(index)) {
-            index_handlers[index] = new IndexHandler(index);
+            index_handlers[index] = new Reader(index);
         }
     }
 }());//}}}
