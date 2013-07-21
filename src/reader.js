@@ -160,13 +160,8 @@ var watchfile = function () {//{{{
     var self = this;
     console.log("watching " + this.db.volume_file);
     this.loop_scan_message();
-    fs.watchFile(this.db.volume_file, function (curr, prev) {
-        if (curr.mtime === prev.mtime) {
-            console.log("mtime equal");
-        } else {
-            self.loop_scan_message();
-            console.log("mtime not equal");
-        }
+    this.watchfs = fs.watch(this.db.volume_file, function (action, filename) {
+        self.loop_scan_message();
     });
 };//}}}
 
@@ -181,7 +176,7 @@ var kill = function () {//{{{
     var self = this;
     console.log('unwatch ' + this.db.volume_file);
     if (this.db.is_latest) {
-        fs.unwatchFile(this.db.volume_file);
+        this.watchfs.close();
     }
     self.killed = true;
     fifo.kill(function () {
@@ -198,7 +193,7 @@ var rotate = function (callback) {//{{{
     var self = this;
     if (this.db.is_latest) {
         console.log('unwatch ' + this.db.volume_file);
-        fs.unwatchFile(this.db.volume_file);
+        this.watchfs.close();
     }
     console.log('close volme.db');
     self.db.volume.close();

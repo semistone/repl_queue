@@ -45,7 +45,7 @@ var init_writer = function (callback) {//{{{
  * rotate file
  *
  */
-var rotate = function (callback) {//{{{
+var rotate_writer = function (callback) {//{{{
     "use strict";
     var self = this,
         new_name,
@@ -115,7 +115,7 @@ var insert = function (req_id, cmd, body, callback) {//{{{
             } else {
                 console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
                 if (this.lastID > VOLUME_SIZE) { // do rotate
-                    self.rotate(function () {
+                    self.rotate_writer(function () {
                         callback();
                     });
                     return;
@@ -214,7 +214,7 @@ DB.prototype = {
     init_db:  init_db,
     init_reader: init_reader,
     insert: insert,
-    rotate: rotate,
+    rotate_writer: rotate_writer,
     rotate_reader: rotate_reader,
     create_volume_db: create_volume_db
 };
