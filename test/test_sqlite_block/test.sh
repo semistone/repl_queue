@@ -1,0 +1,21 @@
+#!/bin/sh
+time node hello_sqlite2.js test1.db &
+time node hello_sqlite2.js test2.db &
+time node hello_sqlite2.js test3.db &
+time node hello_sqlite2.js test4.db &
+time node hello_sqlite2.js test5.db &
+time node hello_sqlite2.js test6.db &
+time node hello_sqlite2.js test7.db &
+time node hello_sqlite2.js test8.db &
+time node hello_sqlite2.js test9.db &
+time node hello_sqlite2.js test10.db &
+time node hello_sqlite2.js test11.db &
+time node hello_sqlite2.js test12.db &
+time node hello_sqlite2.js test13.db &
+time node hello_sqlite2.js test14.db &
+time node hello_sqlite2.js test15.db &
+time node hello_sqlite2.js test16.db &
+time node hello_sqlite2.js test17.db &
+time node hello_sqlite2.js test18.db &
+time node hello_sqlite2.js test19.db &
+time node hello_sqlite2.js test20.db &
