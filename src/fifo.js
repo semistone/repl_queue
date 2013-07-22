@@ -97,7 +97,7 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
                  */
                 update_meta_finish = function (row) {//{{{
                     console.log('update meta finish id:' + row.ID);
-                    remain_cnt--;
+                    remain_cnt = remain_cnt - 1;
                     if (check_kill(killed)) {
                         return false;
                     }
@@ -119,7 +119,7 @@ var fifo = function (working_queue, config, index, finish_callback) {//{{{
                     });
                 } else { // task fail
                     console.log('consume false retry:' + retry + ' for id:' + row.ID);
-                    retry++;
+                    retry = retry + 1;
                     if (retry > constants.settings.MAX_RETRY) {
                         throw new Error('retry to many times');
                     }
@@ -164,7 +164,7 @@ var kill = function (callback) {//{{{
     for (i in fifos) {
         if (fifos.hasOwnProperty(i)) {
             if (!fifos[i].processing) {
-                cnt--;
+                cnt = cnt - 1;
                 console.log('fifo task not processing cnt is ' + cnt);
                 if (cnt === 0) {
                     callback();
@@ -174,7 +174,7 @@ var kill = function (callback) {//{{{
     }
     killed = function () {
         console.log('fifo task killed');
-        cnt--;
+        cnt = cnt - 1;
         if (cnt === 0) {
             callback();
         }

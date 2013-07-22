@@ -104,7 +104,7 @@ var kill = function () {//{{{
         socket.disconnect();
         console.log('server socket disconnect');
     });
-    db.volume.close();
+    db.kill();
     closed = true;
 };//}}}
 

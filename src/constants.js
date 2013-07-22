@@ -50,5 +50,6 @@ module.exports.sql = {//{{{
 module.exports.settings = {//{{{
     VOLUME_SIZE: 30,
     RETRY_INTERVAL: 3000,
-    MAX_RETRY: 3
+    MAX_RETRY: 3,
+    FLUSH_INTERVAL: 1000
 };//}}}

@@ -34,7 +34,7 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
                 console.log('query next record error:' + err + ' reopen again');
                 self.db.create_volume_db(function () {
                     console.log('retry');
-                    retry++;
+                    retry = retry + 1;
                     if (retry < constants.settings.MAX_RETRY) {
                         loop_message(last_record);
                     }
