@@ -1,21 +1,21 @@
 #!/bin/sh
-time node hello_sqlite2.js test1.db &
-time node hello_sqlite2.js test2.db &
-time node hello_sqlite2.js test3.db &
-time node hello_sqlite2.js test4.db &
-time node hello_sqlite2.js test5.db &
-time node hello_sqlite2.js test6.db &
-time node hello_sqlite2.js test7.db &
-time node hello_sqlite2.js test8.db &
-time node hello_sqlite2.js test9.db &
-time node hello_sqlite2.js test10.db &
-time node hello_sqlite2.js test11.db &
-time node hello_sqlite2.js test12.db &
-time node hello_sqlite2.js test13.db &
-time node hello_sqlite2.js test14.db &
-time node hello_sqlite2.js test15.db &
-time node hello_sqlite2.js test16.db &
-time node hello_sqlite2.js test17.db &
-time node hello_sqlite2.js test18.db &
-time node hello_sqlite2.js test19.db &
-time node hello_sqlite2.js test20.db &
+node hello_sqlite.js test1.db &
+node hello_sqlite.js test2.db &
+node hello_sqlite.js test3.db &
+node hello_sqlite.js test4.db &
+node hello_sqlite.js test5.db &
+node hello_sqlite.js test6.db &
+node hello_sqlite.js test7.db &
+node hello_sqlite.js test8.db &
+node hello_sqlite.js test9.db &
+node hello_sqlite.js test10.db &
+node hello_sqlite.js test11.db &
+node hello_sqlite.js test12.db &
+node hello_sqlite.js test13.db &
+node hello_sqlite.js test14.db &
+node hello_sqlite.js test15.db &
+node hello_sqlite.js test16.db &
+node hello_sqlite.js test17.db &
+node hello_sqlite.js test18.db &
+node hello_sqlite.js test19.db &
+node hello_sqlite.js test20.db &
