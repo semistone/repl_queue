@@ -4,7 +4,7 @@ var fs = require('fs'),
     DB = require('./db.js'),
     constants = require('./constants.js'),
     sql = constants.sql,
-    fifo = require('./fifo.js'),
+    fifo_module = require('./fifo.js'),
     config = require('./example/config.js'),
     DELIMITER = '/',
     VOLUME_SIZE = constants.settings.VOLUME_SIZE,
@@ -18,11 +18,12 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
         working_queue = [],
         loop_message,
         self = this,
-        retry = 0;
+        retry = 0,
+        fifo = new fifo_module.FIFO(config, index);
     /**
      * use fifo sub module to consume working queue.
      */
-    this.each_complete_callback = new fifo.each_complete_callback(working_queue, config, index, finish_callback);
+    this.each_complete_callback = fifo.each_complete_callback(working_queue, finish_callback);
 
     /**
      * loop message
@@ -157,7 +158,7 @@ var kill = function () {//{{{
     "use strict";
     var self = this;
     this.killed = true;
-    fifo.kill(function () {
+    fifo_module.kill(function () {
         self.db.kill();
     });
 };//}}}

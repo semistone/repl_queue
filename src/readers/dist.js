@@ -16,9 +16,9 @@ var consumer_function =  function (row, callback) {//{{{
     insert_callback = function (err) {
         if (err) {
             console.log(err);
-            callback(false);
+            callback(false, row);
         } else {
-            callback(true);
+            callback(true, row);
         }
     };
     if (!req_id) {

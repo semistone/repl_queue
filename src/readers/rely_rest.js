@@ -33,10 +33,10 @@ var consumer_function = function (row, callback) {//{{{
     req = http.request(options, function (res) {
         if (res.statusCode === 200) {
             console.log('http rely success for id:' + row.ID);
-            callback(true);
+            callback(true, row);
         } else {
             console.log('http rely fail');
-            callback(false);
+            callback(false, row);
         }
         res.on('data', function (data) {
         });
@@ -45,11 +45,11 @@ var consumer_function = function (row, callback) {//{{{
     req.setSocketKeepAlive(true, 1000);
     req.setTimeout(SOCKET_TIMEOUT, function () {
         console.log('http connected and timeout for id:' + row.ID);
-        callback(false);
+        callback(false, row);
     });
     req.on('error', function () {
         console.log('request error for id:' + row.ID);
-        callback(false);
+        callback(false, row);
     });
     req.write(row.DATA);
     req.end();

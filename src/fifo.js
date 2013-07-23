@@ -7,146 +7,148 @@ var constants = require('./constants.js'),
     fifos = {};
 
 /**
+ * consume result callback
+ * if  success 
+ *    update meta and emit next event
+ * else 
+ *    retry, if retry too many times then throw error 
+ *       
+ */
+var consume_result_callback = function (consume_status, row) { //{{{ do consume
+    "use strict";
+    var update_meta_finish,
+        retry = 0,
+        self = this;
+    /**
+     * call when task finish and update meta finish
+     *
+     * @return has_next
+     */
+    update_meta_finish = function (row) {//{{{
+        console.log('update meta finish id:' + row.ID);
+        self.remain_cnt = self.remain_cnt - 1;
+        if (self.check_kill(killed)) {
+            return false;
+        }
+        if (self.remain_cnt === 0) {
+            self.finish_callback(self.queue_size, self.rowID);
+            self.processing = false;
+            return false;
+        }
+        return true;
+    };//}}}
+
+    if (consume_status) { // task done and success
+        console.log('consume success for id:' + row.ID);
+        this.rowID = row.ID;
+        this.meta.run(sql.UPDATE_META_SQL, [row.ID, this.index], function () {
+            if (update_meta_finish(row)) { // has next
+                self.event_emitter.emit('next');
+            }
+        });
+    } else { // task fail
+        console.log('consume false retry:' + retry + ' for id:' + row.ID);
+        retry = retry + 1;
+        if (retry > constants.settings.MAX_RETRY) {
+            throw new Error('retry to many times');
+        }
+        if (this.check_kill(killed)) {
+            return;
+        }
+        //
+        // delay call
+        //
+        setTimeout(function () {
+            self.reader.consumer_function(row, function (consume_status, row) {
+                self.consume_result_callback(consume_status, row);
+            }); // self = function (consume_status) itself
+        }, constants.settings.RETRY_INTERVAL);
+    }
+};//}}}
+
+/**
+ * serialize execute task.
+ *
+ */
+var sequence_task = function () {//{{{
+    "use strict";
+    var row,
+        self = this;
+    console.log('do sequence task, remain task size ' + this.working_queue.length);
+    if (this.working_queue.length === 0) { // all task done
+        return;
+    }
+    row = this.working_queue.shift();
+    console.log('consume row ' + row.ID);
+    this.reader.consumer_function(row, function (consume_status, row) {
+        self.consume_result_callback(consume_status, row);
+    });
+};//}}}
+/**
  * Fifo consume constructor.
  * @args working_queue Array
  * @args config Object
  *
  * @return each_complete_callback
  */
-var fifo = function (working_queue, config, index, finish_callback) {//{{{
+var FIFO = function (config, index) {//{{{
     "use strict";
-    var self = this,
-        reader_setting,
-        reader,
-        meta,
-        queue_size = 0,
-        remain_cnt = 0,
-        each_complete_callback;
-    this.processing = false;
+    var reader_setting;
     fifos[index] = this;
-
     console.log('index is ' + index);
     reader_setting = config.reader[index].consumer_function;
     if (reader_setting === undefined) {
         throw new Error('consumer_function is undefined');
     }
-    reader = new reader_setting[0](reader_setting[1]);
-    meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db');
+    this.index = index;
+    this.reader = new reader_setting[0](reader_setting[1]);
+    this.meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db');
+};//}}}
 
-
-    /**
-     * db.each(select)'s callback function
-     *
-     */
-    each_complete_callback = function (err, rows) {//{{{
-        var check_kill,
-            sequence_task,
-            event_emitter = new Emitter();
+/**
+ *
+ *
+ */
+var each_complete_callback = function (working_queue, finish_callback) {//{{{
+    "use strict";
+    var self = this;
+    this.working_queue = working_queue;
+    this.finish_callback = finish_callback;
+    return function (err, rows) {//{{{
         self.processing = true;
-        console.log('select result size for index ' + index + ' is ' + rows);
-        queue_size = remain_cnt = rows;
+        console.log('select result size for index ' + self.index + ' is ' + rows);
+        self.queue_size = self.remain_cnt = rows;
         if (rows === undefined || rows === 0) { // check empty result.
             console.log('empty rows');
             finish_callback(0);
             self.processing = false;
             return;
         }
-        //
-        // if killed, then remove event emitter to prevent next event 
-        //
-        check_kill = function (killed) {//{{{
-            if (killed) {
-                console.log('fifo killed event fired');
-                event_emitter.removeAllListeners();
-                killed();
-                return true;
-            }
-            return false;
-        };//}}}
 
-        /**
-         * serialize execute task.
-         *
-         */
-        sequence_task = function () {//{{{
-            var row,
-                consume_result_callback,
-                retry = 0;
-            console.log('do sequence task, remain task size ' + working_queue.length);
-            if (working_queue.length === 0) { // all task done
-                return;
-            }
-            row = working_queue.shift();
-            console.log('consume row ' + row.ID);
-
-
-            /**
-             * consume result callback
-             * if  success 
-             *    update meta and emit next event
-             * else 
-             *    retry, if retry too many times then throw error 
-             *       
-             */
-            consume_result_callback = function (consume_status) { //{{{ do consume
-                var update_meta_finish;
-                /**
-                 * call when task finish and update meta finish
-                 *
-                 * @return has_next
-                 */
-                update_meta_finish = function (row) {//{{{
-                    console.log('update meta finish id:' + row.ID);
-                    remain_cnt = remain_cnt - 1;
-                    if (check_kill(killed)) {
-                        return false;
-                    }
-                    if (remain_cnt === 0) {
-                        finish_callback(queue_size, self.rowID);
-                        self.processing = false;
-                        return false;
-                    }
-                    return true;
-                };//}}}
-
-                if (consume_status) { // task done and success
-                    console.log('consume success for id:' + row.ID);
-                    self.rowID = row.ID;
-                    meta.run(sql.UPDATE_META_SQL, [row.ID, index], function () {
-                        if (update_meta_finish(row)) { // has next
-                            event_emitter.emit('next');
-                        }
-                    });
-                } else { // task fail
-                    console.log('consume false retry:' + retry + ' for id:' + row.ID);
-                    retry = retry + 1;
-                    if (retry > constants.settings.MAX_RETRY) {
-                        throw new Error('retry to many times');
-                    }
-                    if (check_kill(killed)) {
-                        return;
-                    }
-                    //
-                    // delay call
-                    //
-                    setTimeout(function () {
-                        reader.consumer_function(row, consume_result_callback); // self = function (consume_status) itself
-                    }, constants.settings.RETRY_INTERVAL);
-                }
-            };//}}}
-            reader.consumer_function(row, consume_result_callback);
-        };//}}}
-
-        event_emitter.on('next', sequence_task);
+        self.event_emitter.on('next', function () {
+            self.sequence_task();
+        });
         //
         // emit next event -> sequence_task -> consumer_function
         // after finish, then invoke finish_callback
         //
-        event_emitter.emit('next');
+        self.event_emitter.emit('next');
     };//}}}
+};//}}}
 
-    return each_complete_callback;
 
+/**
+ * if killed, then remove event emitter to prevent next event 
+ */
+var check_kill = function (killed) {//{{{
+    "use strict";
+    if (killed) {
+        console.log('fifo killed event fired');
+        this.event_emitter.removeAllListeners();
+        killed();
+        return true;
+    }
+    return false;
 };//}}}
 
 /**
@@ -181,5 +183,20 @@ var kill = function (callback) {//{{{
     };
 };//}}}
 
-module.exports.each_complete_callback = fifo;
+module.exports.FIFO = FIFO;
 module.exports.kill = kill;
+
+(function () {//{{{
+    "use strict";
+    FIFO.prototype = {
+        processing: false,
+        working_queue: undefined,
+        queue_size: 0,
+        remain_cnt: 0,
+        each_complete_callback: each_complete_callback,
+        event_emitter: new Emitter(),
+        check_kill: check_kill,
+        sequence_task: sequence_task,
+        consume_result_callback: consume_result_callback
+    };
+}());//}}}

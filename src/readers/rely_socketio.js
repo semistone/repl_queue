@@ -8,10 +8,10 @@ var consumer_function =  function (row, callback) {//{{{
     "use strict";
     if (!this.connect_status) {
         console.log('disconnected');
-        callback(false);
+        callback(false, row);
     }
     this.socket.emit('write', row, function (err) {
-        callback(!err);
+        callback(!err, row);
     });
 };//}}}
 
