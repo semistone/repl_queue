@@ -35,10 +35,10 @@ var update_meta_finish = function (row) {//{{{
  */
 var consume_result_callback = function () {//{{{
     "use strict";
-    var self = this;
-    return function (consume_status, row) { //{{{ do consume
-        var retry = 0;
-
+    var self = this,
+        callback_func,
+        retry = 0;
+    callback_func = function (consume_status, row) { //{{{ do consume
         if (consume_status) { // task done and success
             console.log('consume success for id:' + row.ID);
             self.rowID = row.ID;
@@ -47,6 +47,7 @@ var consume_result_callback = function () {//{{{
                     self.event_emitter.emit('next');
                 }
             });
+            retry = 0;
         } else { // task fail
             console.log('consume false retry:' + retry + ' for id:' + row.ID);
             retry = retry + 1;
@@ -60,10 +61,11 @@ var consume_result_callback = function () {//{{{
             // delay call
             //
             setTimeout(function () {
-                self.reader.consumer_function(row, self.consume_result_callback()); // self = function (consume_status) itself
+                self.reader.consumer_function(row, callback_func); // self = function (consume_status) itself
             }, constants.settings.RETRY_INTERVAL);
         }
     };//}}}
+    return callback_func;
 };//}}}
 
 /**
