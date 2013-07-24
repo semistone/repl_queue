@@ -4,6 +4,24 @@ var sqlite3 = require('sqlite3').verbose(),
     sql = constants.sql,
     VOLUME_SIZE = constants.settings.VOLUME_SIZE;
 
+var safe_db_commit = function (db) {//{{{
+    "use strict";
+    console.log('[db]commit');
+    if (db.tx_status === true) {
+        db.tx_status = undefined;
+        db.exec('COMMIT');
+    }
+};//}}}
+
+var safe_db_begin = function (db) {//{{{
+    "use strict";
+    console.log('[db]begin transaction');
+    if (db.tx_status === undefined) {
+        db.tx_status = true;
+        db.exec('BEGIN TRANSACTION');
+    }
+};//}}}
+
 var init_writer = function (callback) {//{{{
     "use strict";
     var self = this;
@@ -29,6 +47,7 @@ var init_writer = function (callback) {//{{{
         } else {
             console.log('[db]last volume for writer is ' + row.VOLUME);
             self.volume_id = row.VOLUME;
+            self.last_record = row.LAST_RECORD;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
         }
         console.log('[db]open volume file in ' + self.volume_file);
@@ -91,6 +110,7 @@ var rotate_writer = function (callback) {//{{{
                 console.log('[db]update writer volume id to ' + self.volume_id);
                 self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function () {
                     var i;
+                    self.last_record = 0;
                     for (i in self.callbacks) {
                         if (self.callbacks.hasOwnProperty(i)) {
                             console.log('[db]rotate finished callback ' + i);
@@ -129,10 +149,8 @@ var insert = function (req_id, cmd, body, callback) {//{{{
             } else {
                 console.log('[db]insert success for cmd:' + cmd + ' result is ' + this.lastID);
                 if (this.lastID >= VOLUME_SIZE) { // do rotate
-                    self.rotating = true;
                     self.rotate_writer(function () {
                         var i = 0;
-                        self.rotating = false;
                         callback();
                         for (i in self.writer_rotate_callback) {
                             if (self.writer_rotate_callback.hasOwnProperty(i)) {
@@ -140,6 +158,8 @@ var insert = function (req_id, cmd, body, callback) {//{{{
                                 self.writer_rotate_callback[i]();
                             }
                         }
+                        self.rotating = false;
+                        console.log('[db] reset rotate callback');
                         self.writer_rotate_callback = undefined;
                     });
                     return;
@@ -148,17 +168,25 @@ var insert = function (req_id, cmd, body, callback) {//{{{
             }
         };//}}}
     this.cnt = this.cnt + 1;
-    if (this.lastID > VOLUME_SIZE && this.rotating) { // do rotate
+    if (this.last_record >= VOLUME_SIZE && this.rotating) { // do rotate
         if (this.writer_rotate_callback === undefined) {
+            console.log('[db] init rotate callback array');
             this.writer_rotate_callback = [];
         }
-        this.writer_rotate_callback.push(function(){
+        console.log('[db] push rotate callback');
+        this.writer_rotate_callback.push(function () {
+            self.last_record = self.last_record + 1;
+            console.log('[db] insert into volume and last id is ' + self.last_record);
             self.volume.run(sql.INSERT_VOLUME_SQL,
                 [req_id, cmd, body, new Date().getTime() / 1000],
                 insert_callback);
-                   
         });
     } else {
+        this.last_record = this.last_record + 1;
+        if (this.last_record == VOLUME_SIZE) {
+            this.rotating = true;
+        }
+        console.log('[db] insert into volume and last id is ' + this.last_record);
         this.volume.run(sql.INSERT_VOLUME_SQL,
             [req_id, cmd, body, new Date().getTime() / 1000],
             insert_callback);
@@ -259,7 +287,7 @@ var rotate_reader = function (callback) {//{{{
     "use strict";
     var self = this;
     this.volume_id += 1;
-    this.lastID = 0;
+    this.last_record = 0;
     console.log('rotate reader, update meta to next volume');
     if (this.is_latest) {
         console.log('unwatch ' + this.volume_file);
@@ -312,21 +340,6 @@ var kill = function () {//{{{
     }
 };//}}}
 
-var safe_db_commit = function(db) {//{{{
-     console.log('[db]commit');
-     if (db.tx_status === 1) {
-         db.tx_status = 0;
-         db.exec('COMMIT');
-     }
-};//}}}
-
-var safe_db_begin = function(db) {//{{{
-     console.log('[db]begin transaction');
-     if (db.tx_status === 0) {
-         db.tx_status = 1;
-         db.exec('BEGIN TRANSACTION');
-     }
-};//}}}
 
 var flush_per_second = function () {//{{{
     "use strict";
@@ -348,6 +361,7 @@ DB.prototype = {
     init_writer: init_writer,
     init_db:  init_db,
     cnt:  0,
+    last_record: 0,
     flush_writer_id:  undefined,
     writer_rotate_callback:  undefined,
     init_reader: init_reader,
