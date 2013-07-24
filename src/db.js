@@ -35,7 +35,7 @@ var init_writer = function (callback) {//{{{
         self.volume = new sqlite3.Database(self.volume_file);
         if (self.flush_writer_id !== undefined) {
             console.log('[db]begin transaction');
-            self.volume.exec('BEGIN TRANSACTION');
+            safe_db_begin(self.volume);
         }
         self.volume.serialize(function () {
             console.log('[db]init writer volume file');
@@ -80,8 +80,7 @@ var rotate_writer = function (callback) {//{{{
                 console.log('[db]open new volume ' + new_name + ' new volume id is ' + self.volume_id);
                 self.volume = new sqlite3.Database(new_name);
                 if (self.flush_writer_id !== undefined) {
-                    console.log('[db]begin transaction');
-                    self.volume.exec('BEGIN TRANSACTION');
+                    safe_db_begin(self.volume);
                 }
                 self.volume.serialize(function () {
                     console.log('[db]init new volume file');
@@ -102,8 +101,7 @@ var rotate_writer = function (callback) {//{{{
                 });
             };//}}}
             if (self.flush_writer_id !== undefined) {
-                console.log('[db]commit');
-                self.volume.exec('COMMIT');
+                safe_db_commit(self.volume);
             }
             self.volume.close(after_volume_close);
         });
@@ -130,9 +128,19 @@ var insert = function (req_id, cmd, body, callback) {//{{{
                 callback(err);
             } else {
                 console.log('[db]insert success for cmd:' + cmd + ' result is ' + this.lastID);
-                if (this.lastID > VOLUME_SIZE) { // do rotate
+                if (this.lastID >= VOLUME_SIZE) { // do rotate
+                    self.rotating = true;
                     self.rotate_writer(function () {
+                        var i = 0;
+                        self.rotating = false;
                         callback();
+                        for (i in self.writer_rotate_callback) {
+                            if (self.writer_rotate_callback.hasOwnProperty(i)) {
+                                console.log('[db]rotate callback ' + i);
+                                self.writer_rotate_callback[i]();
+                            }
+                        }
+                        self.writer_rotate_callback = undefined;
                     });
                     return;
                 }
@@ -140,9 +148,21 @@ var insert = function (req_id, cmd, body, callback) {//{{{
             }
         };//}}}
     this.cnt = this.cnt + 1;
-    this.volume.run(sql.INSERT_VOLUME_SQL,
-        [req_id, cmd, body, new Date().getTime() / 1000],
-        insert_callback);
+    if (this.lastID > VOLUME_SIZE && this.rotating) { // do rotate
+        if (this.writer_rotate_callback === undefined) {
+            this.writer_rotate_callback = [];
+        }
+        this.writer_rotate_callback.push(function(){
+            self.volume.run(sql.INSERT_VOLUME_SQL,
+                [req_id, cmd, body, new Date().getTime() / 1000],
+                insert_callback);
+                   
+        });
+    } else {
+        this.volume.run(sql.INSERT_VOLUME_SQL,
+            [req_id, cmd, body, new Date().getTime() / 1000],
+            insert_callback);
+    }
 
 };//}}}
 
@@ -167,15 +187,15 @@ var init_reader = function (index, callback) {//{{{
     //
     if (constants.settings.FLUSH_INTERVAL > 0 &&
             this.meta.flush_reader_id !== undefined) {
-        this.meta.exec('BEGIN TRANSACTION');
+        safe_db_begin(this.meta);
         console.log('[db]start flush per ' + constants.settings.FLUSH_INTERVAL);
         this.meta.flush_reader_id = setInterval(function () {
             if (self.meta === undefined) {
                 return;
             }
             console.log('[db]do flush');
-            self.meta.exec('COMMIT');
-            self.meta.exec('BEGIN TRANSACTION');
+            safe_db_commit(self.meta);
+            safe_db_begin(self.meta);
             self.cnt = 0;
         }, constants.settings.FLUSH_INTERVAL);
     }
@@ -276,12 +296,12 @@ var kill = function () {//{{{
     "use strict";
     if (this.flush_writer_id !== undefined) {
         clearInterval(this.flush_writer_id);
-        this.volume.exec('COMMIT');
+        safe_db_commit(this.volume);
     }
     if (this.meta.flush_reader_id !== undefined) {
         clearInterval(this.flush_reader_id);
         this.meta.flush_reader_id = undefined;
-        this.meta.exec('COMMIT');
+        safe_db_commit(this.meta);
     }
     console.log('[db]close volme.db');
     this.volume.close();
@@ -290,6 +310,22 @@ var kill = function () {//{{{
     if (this.is_latest) {
         this.watchfs.close();
     }
+};//}}}
+
+var safe_db_commit = function(db) {//{{{
+     console.log('[db]commit');
+     if (db.tx_status === 1) {
+         db.tx_status = 0;
+         db.exec('COMMIT');
+     }
+};//}}}
+
+var safe_db_begin = function(db) {//{{{
+     console.log('[db]begin transaction');
+     if (db.tx_status === 0) {
+         db.tx_status = 1;
+         db.exec('BEGIN TRANSACTION');
+     }
 };//}}}
 
 var flush_per_second = function () {//{{{
@@ -301,8 +337,8 @@ var flush_per_second = function () {//{{{
         }
         if (self.cnt > 0) {
             console.log('[db]do flush');
-            self.volume.exec('COMMIT');
-            self.volume.exec('BEGIN TRANSACTION');
+            safe_db_commit(self.volume);
+            safe_db_begin(self.volume);
             self.cnt = 0;
         }
     }, constants.settings.FLUSH_INTERVAL);
@@ -313,6 +349,7 @@ DB.prototype = {
     init_db:  init_db,
     cnt:  0,
     flush_writer_id:  undefined,
+    writer_rotate_callback:  undefined,
     init_reader: init_reader,
     insert: insert,
     rotate_writer: rotate_writer,
