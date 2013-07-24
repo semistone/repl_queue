@@ -12,12 +12,13 @@ config = {
         rest_handler_enable: true 
     },
     reader:{
-        //'1':{ // index
-        //    consumer_function: [dist, './example/volume2.db']
-        //},
+        '1':{ // index
+            consumer_function: [rely_rest, 'http://localhost:9090/repl/example'],
+            filter : filter_module.filter('ID', filter_module.mod_rule(2 ,0))
+        },
         '2':{// index
             consumer_function: [rely_rest, 'http://localhost:9090/repl/example'],
-            filter : filter_module.filter('ID', filter_module.mod_rule(1 ,0))
+            filter : filter_module.filter('ID', filter_module.mod_rule(2 ,1))
         },/*
         '3':{// index
             consumer_function: rely_socketio('http://localhost:9090/repl_socket/example')

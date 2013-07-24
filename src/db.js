@@ -33,7 +33,7 @@ var init_writer = function (callback) {//{{{
         }
         console.log('[db]open volume file in ' + self.volume_file);
         self.volume = new sqlite3.Database(self.volume_file);
-        if (self.flush_id !== undefined) {
+        if (self.flush_writer_id !== undefined) {
             console.log('[db]begin transaction');
             self.volume.exec('BEGIN TRANSACTION');
         }
@@ -79,7 +79,7 @@ var rotate_writer = function (callback) {//{{{
                 new_name = self.config.path + '/volume_' + self.volume_id + '.db';
                 console.log('[db]open new volume ' + new_name + ' new volume id is ' + self.volume_id);
                 self.volume = new sqlite3.Database(new_name);
-                if (self.flush_id !== undefined) {
+                if (self.flush_writer_id !== undefined) {
                     console.log('[db]begin transaction');
                     self.volume.exec('BEGIN TRANSACTION');
                 }
@@ -101,7 +101,7 @@ var rotate_writer = function (callback) {//{{{
                     self.callbacks = undefined;
                 });
             };//}}}
-            if (self.flush_id !== undefined) {
+            if (self.flush_writer_id !== undefined) {
                 console.log('[db]commit');
                 self.volume.exec('COMMIT');
             }
@@ -124,7 +124,7 @@ var DB = function (config, callback) {//{{{
 var insert = function (req_id, cmd, body, callback) {//{{{
     "use strict";
     var self = this,
-        insert_callback = function (err) {
+        insert_callback = function (err) {//{{{
             if (err) {
                 console.log('[db]insert result ' + err);
                 callback(err);
@@ -138,7 +138,7 @@ var insert = function (req_id, cmd, body, callback) {//{{{
                 }
                 callback();
             }
-        };
+        };//}}}
     this.cnt = this.cnt + 1;
     this.volume.run(sql.INSERT_VOLUME_SQL,
         [req_id, cmd, body, new Date().getTime() / 1000],
@@ -162,6 +162,23 @@ var init_reader = function (index, callback) {//{{{
     this.watch_callback = callback;
     this.index = index;
     this.meta.run(sql.INSERT_META_SQL, [index, 0]);
+    //
+    // flush meta per second
+    //
+    if (constants.settings.FLUSH_INTERVAL > 0 &&
+            this.meta.flush_reader_id !== undefined) {
+        this.meta.exec('BEGIN TRANSACTION');
+        console.log('[db]start flush per ' + constants.settings.FLUSH_INTERVAL);
+        this.meta.flush_reader_id = setInterval(function () {
+            if (self.meta === undefined) {
+                return;
+            }
+            console.log('[db]do flush');
+            self.meta.exec('COMMIT');
+            self.meta.exec('BEGIN TRANSACTION');
+            self.cnt = 0;
+        }, constants.settings.FLUSH_INTERVAL);
+    }
     /**
      * get last record and start loop message.
      *
@@ -257,9 +274,14 @@ var watchfile = function (callback) {//{{{
 
 var kill = function () {//{{{
     "use strict";
-    if (this.flush_id !== undefined) {
-        clearInterval(this.flush_id);
+    if (this.flush_writer_id !== undefined) {
+        clearInterval(this.flush_writer_id);
         this.volume.exec('COMMIT');
+    }
+    if (this.meta.flush_reader_id !== undefined) {
+        clearInterval(this.flush_reader_id);
+        this.meta.flush_reader_id = undefined;
+        this.meta.exec('COMMIT');
     }
     console.log('[db]close volme.db');
     this.volume.close();
@@ -273,7 +295,7 @@ var kill = function () {//{{{
 var flush_per_second = function () {//{{{
     "use strict";
     var self = this;
-    this.flush_id = setInterval(function () {
+    this.flush_writer_id = setInterval(function () {
         if (self.volume === undefined) {
             return;
         }
@@ -290,7 +312,7 @@ DB.prototype = {
     init_writer: init_writer,
     init_db:  init_db,
     cnt:  0,
-    flush_id:  undefined,
+    flush_writer_id:  undefined,
     init_reader: init_reader,
     insert: insert,
     rotate_writer: rotate_writer,
