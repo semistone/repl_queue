@@ -80,6 +80,9 @@ var sequence_task = function () {//{{{
         return;
     }
     row = this.working_queue.shift();
+    if (this.filter !== undefined && this.filter(row) === false) {
+        (this.consume_result_callback())(true, row); //assume process success if filter out.
+    }
     console.log('consume row ' + row.ID);
     this.reader.consumer_function(row, this.consume_result_callback());
 };//}}}
@@ -93,7 +96,8 @@ var sequence_task = function () {//{{{
  */
 var FIFO = function (config, index) {//{{{
     "use strict";
-    var reader_setting;
+    var reader_setting,
+        self = this;
     fifos[index] = this;
     console.log('index is ' + index);
     reader_setting = config.reader[index].consumer_function;
@@ -102,7 +106,11 @@ var FIFO = function (config, index) {//{{{
     }
     this.index = index;
     this.reader = new reader_setting[0](reader_setting[1]);
+    this.filter = config.reader[index].filter;
     this.meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db');
+    this.event_emitter.on('next', function () {
+        self.sequence_task();
+    });
 };//}}}
 
 /**
@@ -128,9 +136,6 @@ var each_complete_callback = function (working_queue, finish_callback) {//{{{
             return;
         }
 
-        self.event_emitter.on('next', function () {
-            self.sequence_task();
-        });
         //
         // emit next event -> sequence_task -> consumer_function
         // after finish, then invoke finish_callback

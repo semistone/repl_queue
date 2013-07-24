@@ -18,12 +18,11 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
         working_queue = [],
         loop_message,
         self = this,
-        retry = 0,
-        fifo = new fifo_module.FIFO(config, index);
+        retry = 0;
     /**
      * use fifo sub module to consume working queue.
      */
-    this.each_complete_callback = fifo.each_complete_callback(working_queue, finish_callback);
+    this.each_complete_callback = this.fifo.each_complete_callback(working_queue, finish_callback);
 
     /**
      * loop message
@@ -137,9 +136,11 @@ var loop_scan_message = function () {//{{{
  */
 var Reader = function (index) {//{{{
     "use strict";
-    var self = this;
+    var self = this,
+        filter;
     this.processing = false; // if message loop is processing
     this.index = index;
+    this.fifo = new fifo_module.FIFO(config, index);
     this.db = new DB(config, function () {
         self.db.init_reader(index, function () {
             self.loop_scan_message();
