@@ -29,13 +29,13 @@ var consumer_function = function (row, callback) {//{{{
         },
         path: this.options.path + '/' + row.CMD + '/' + req_id
     };
-    console.log('rely id :' + row.ID + " data:" + row.DATA + ' to ' + options.hostname + options.path);
+    console.log('[rest reader]rely id :' + row.ID + " data:" + row.DATA + ' to ' + options.hostname + options.path);
     req = http.request(options, function (res) {
         if (res.statusCode === 200) {
-            console.log('http rely success for id:' + row.ID);
+            console.log('[rest reader]http rely success for id:' + row.ID);
             callback(true, row);
         } else {
-            console.log('http rely fail');
+            console.log('[rest reader]http rely fail');
             callback(false, row);
         }
         res.on('data', function (data) {
@@ -44,11 +44,11 @@ var consumer_function = function (row, callback) {//{{{
     });
     req.setSocketKeepAlive(true, 1000);
     req.setTimeout(SOCKET_TIMEOUT, function () {
-        console.log('http connected and timeout for id:' + row.ID);
+        console.log('[rest reader]http connected and timeout for id:' + row.ID);
         callback(false, row);
     });
     req.on('error', function () {
-        console.log('request error for id:' + row.ID);
+        console.log('[rest reader] request error for id:' + row.ID);
         callback(false, row);
     });
     req.write(row.DATA);

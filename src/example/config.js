@@ -1,7 +1,7 @@
 var rely_rest = require('../readers/rely_rest.js');
 var dist = require('../readers/dist.js');
 var ip_acl = require('../ip_acl.js');
-var filter = require('../filter.js');
+var filter_module = require('../filter.js');
 var rely_socketio = require('../readers/rely_socketio.js');
 config = {
     type: 'fifo',
@@ -17,7 +17,7 @@ config = {
         //},
         '2':{// index
             consumer_function: [rely_rest, 'http://localhost:9090/repl/example'],
-            filter : filter.Filter('ID', filter.ModRule(1 ,1))
+            filter : filter_module.filter('ID', filter_module.mod_rule(1 ,0))
         },/*
         '3':{// index
             consumer_function: rely_socketio('http://localhost:9090/repl_socket/example')

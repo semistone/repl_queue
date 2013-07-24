@@ -13,7 +13,7 @@ var constants = require('./constants.js'),
  */
 var update_meta_finish = function (row) {//{{{
     "use strict";
-    console.log('update meta finish id:' + row.ID);
+    console.log('[fifo]update meta finish id:' + row.ID);
     this.remain_cnt = this.remain_cnt - 1;
     if (this.check_kill(killed)) {
         return false;
@@ -40,7 +40,7 @@ var consume_result_callback = function () {//{{{
         retry = 0;
     callback_func = function (consume_status, row) { //{{{ do consume
         if (consume_status) { // task done and success
-            console.log('consume success for id:' + row.ID);
+            console.log('[fifo]consume success for id:' + row.ID);
             self.rowID = row.ID;
             self.meta.run(sql.UPDATE_META_SQL, [row.ID, self.index], function () {
                 if (self.update_meta_finish(row)) { // has next
@@ -49,7 +49,7 @@ var consume_result_callback = function () {//{{{
             });
             retry = 0;
         } else { // task fail
-            console.log('consume false retry:' + retry + ' for id:' + row.ID);
+            console.log('[fifo]consume false retry:' + retry + ' for id:' + row.ID);
             retry = retry + 1;
             if (retry > constants.settings.MAX_RETRY) {
                 throw new Error('retry to many times');
@@ -75,15 +75,16 @@ var consume_result_callback = function () {//{{{
 var sequence_task = function () {//{{{
     "use strict";
     var row;
-    console.log('do sequence task, remain task size ' + this.working_queue.length);
+    console.log('[fifo]do sequence task, remain task size ' + this.working_queue.length);
     if (this.working_queue.length === 0) { // all task done
         return;
     }
     row = this.working_queue.shift();
     if (this.filter !== undefined && this.filter(row) === false) {
         (this.consume_result_callback())(true, row); //assume process success if filter out.
+        return;
     }
-    console.log('consume row ' + row.ID);
+    console.log('[fifo]consume row ' + row.ID);
     this.reader.consumer_function(row, this.consume_result_callback());
 };//}}}
 
@@ -123,7 +124,7 @@ var each_complete_callback = function (working_queue, finish_callback) {//{{{
     this.working_queue = working_queue;
     this.finish_callback = finish_callback;
     return function (err, rows) {//{{{
-        if (self.processing === true) {
+        if (this.processing === true) {
             throw new Error('fifo still processing');
         }
         self.processing = true;

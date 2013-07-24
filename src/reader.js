@@ -59,7 +59,7 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
                 loop_message(0);
             });
         } else {
-            console.log('last record for index ' + index + ' is ' + row.LAST_RECORD);
+            console.log('[reader]last record for index ' + index + ' is ' + row.LAST_RECORD);
             self.last_record = row.LAST_RECORD;
             loop_message(row.LAST_RECORD);
         }
@@ -83,21 +83,21 @@ var loop_scan_message = function () {//{{{
     }
     this.processing = true;
     finish_callback = function (rows, rowID) {
-        console.log('finish callback');
+        console.log('[reader]start finish callback');
         if (self.killed) { // killed signal fired, stop loop.
             finish_event_emitter.removeAllListeners();
             return;
         }
         if (rows !== 0) {
             self.get_last_record_and_loop_message(self.index, function (rows) {
-                console.log('emit finish event, last loop consume rows ' + rows);
+                console.log('[reader]emit finish event, last loop consume rows ' + rows);
                 finish_event_emitter.emit('finish', rows);
             });
         } else {
             if (rowID === undefined) {
                 rowID = self.last_record;
             }
-            console.log('end scan message and stop processing row id is ' + rowID);
+            console.log('[reader]end scan message and stop processing row id is ' + rowID);
             if (rowID > VOLUME_SIZE) {
                 console.log('current row id is ' + rowID);
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
@@ -106,7 +106,7 @@ var loop_scan_message = function () {//{{{
                         return;
                     }
                     if (row.CNT > 0) {
-                        console.log("change to next volume");
+                        console.log("[reader]change to next volume");
                         self.db.rotate_reader(function (err) { // rotate success then continue loop
                             if (err) {
                                 console.log('rotate error ' + err);
@@ -119,7 +119,7 @@ var loop_scan_message = function () {//{{{
                     }
                 });
             } else {
-                console.log('set processing false');
+                console.log('[reader]set processing false');
                 self.processing = false;
             }
         }
