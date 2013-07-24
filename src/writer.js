@@ -25,13 +25,13 @@ var io_handler = function () {//{{{
     "use strict";
     var io = server.io.of('/repl_socket' + config.path);
     io.on('connection', function (socket) {
-        console.log('server socket connected');
+        console.log('[writer]server socket connected');
         socket.on('write', function (row, insert_callback) {
             db.insert(row.ID, row.CMD, row.DATA, insert_callback);
         });
         socketlist.push(socket);
         socket.on('close', function () {
-            console.log('writer socket close');
+            console.log('[writer]writer socket close');
             socketlist.splice(socketlist.indexOf(socket), 1);
         });
     });
@@ -48,13 +48,13 @@ var http_handler = function (req, res) {//{{{
     var acl = config.writer.acl, body, cmd_and_id,
         queue, cmd, req_id, insert_callback;
     if (acl !== undefined && acl(req) === false) {
-        console.log('access deny');
+        console.log('[writer]access deny');
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end();
         return;
     }
     if (req.method === 'POST') {
-        console.log('new request ' + req.url);
+        console.log('[writer]new request ' + req.url);
         body = '';
         cmd_and_id = match.exec(req.url);
         queue = cmd_and_id[1];
@@ -79,7 +79,7 @@ var http_handler = function (req, res) {//{{{
             db.insert(req_id, cmd, body, insert_callback);
         });
     } else {
-        console.log('only accept POST method');
+        console.log('[writer]only accept POST method');
         res.writeHead(405, { 'Content-Type': 'application/json' });
         res.end();
     }
@@ -95,14 +95,14 @@ var kill = function () {//{{{
         return;
     }
     server.kill(function () {
-        console.log('writer listen ' + config.server.listen + ' killed');
+        console.log('[writer]writer listen ' + config.server.listen + ' killed');
     });
     //
     // close socket
     // 
     socketlist.forEach(function (socket) {
         socket.disconnect();
-        console.log('server socket disconnect');
+        console.log('[writer]server socket disconnect');
     });
     db.kill();
     closed = true;
@@ -115,11 +115,11 @@ var kill = function () {//{{{
 var binding_signal = function () {//{{{
     "use strict";
     process.on('SIGINT', function () {
-        console.log('fire SIGINT in writer');
+        console.log('[writer]fire SIGINT in writer');
         kill();
     });
     process.on('SIGHUP', function () {
-        console.log('fire SIGHUP in writer');
+        console.log('[writer]fire SIGHUP in writer');
         kill();
     });
 };//}}}
@@ -131,17 +131,17 @@ var binding_signal = function () {//{{{
     "use strict";
     db.init_writer(function () {
         if (config.writer === undefined) {
-            console.log('writer not exist');
+            console.log('[writer]writer not exist');
             return;
         }
         if (config.server.rest_handler_enable === true) {
-            console.log('rest handler enabled');
+            console.log('[writer]rest handler enabled');
             server.http.on('request', http_handler);
         }
         // enable socketio
         //
         if (config.server.socketio_handler_enable === true) {
-            console.log('socket io handler enabled');
+            console.log('[writer]socket io handler enabled');
             io_handler();
         }
         binding_signal();

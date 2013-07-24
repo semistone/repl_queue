@@ -10,35 +10,35 @@ var init_writer = function (callback) {//{{{
     this.volume_id = 0;
     this.volume_file = self.config.path + '/volume_0.db';
     if (constants.settings.FLUSH_INTERVAL > 0) {
-        console.log('start flush per ' + constants.settings.FLUSH_INTERVAL);
+        console.log('[db]start flush per ' + constants.settings.FLUSH_INTERVAL);
         this.flush_per_second();
     }
     /**
      * get last record and start loop message.
      *
      */
-    console.log('init volume');
+    console.log('[db]init volume');
     this.meta.get(sql.SELECT_META_SQL, [0], function (error, row) {
         var tableExists = (row !== undefined);
         if (!tableExists) {
             self.meta.serialize(function () {
                 self.meta.run(sql.INSERT_META_SQL, [0, 0], function () {
-                    console.log("insert init writer meta done");
+                    console.log("[db]insert init writer meta done");
                 });
             });
         } else {
-            console.log('last volume for writer is ' + row.VOLUME);
+            console.log('[db]last volume for writer is ' + row.VOLUME);
             self.volume_id = row.VOLUME;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
         }
-        console.log('open volume file in ' + self.volume_file);
+        console.log('[db]open volume file in ' + self.volume_file);
         self.volume = new sqlite3.Database(self.volume_file);
         if (self.flush_id !== undefined) {
-            console.log('begin transaction');
+            console.log('[db]begin transaction');
             self.volume.exec('BEGIN TRANSACTION');
         }
         self.volume.serialize(function () {
-            console.log('init writer volume file');
+            console.log('[db]init writer volume file');
             self.volume.run(sql.CREATE_SQL);
             self.volume.run(sql.CREATE_META_SQL);
             self.volume.run(sql.INSERT_VOLUME_META, self.volume_id, function () {
@@ -60,49 +60,49 @@ var rotate_writer = function (callback) {//{{{
         old_name = self.config.path + '/volume_' + self.volume_id + '.db';
     if (this.callbacks !== undefined) {// prevent concurrent 
         this.callbacks.push(callback);
-        console.log('rotate volume file push callback');
+        console.log('[db]rotate volume file push callback');
         return;
     }
 
     this.callbacks = [];
     this.callbacks.push(callback);
-    console.log('rotate volume file');
+    console.log('[db]rotate volume file');
     self.volume.serialize(function () {
         // update and get
         self.volume.run(sql.UPDATE_VOLUME_META);
         self.volume.get(sql.GET_VOLUME_META, function (err, row) {
             var after_volume_close;
-            console.log('last record is ' + row.LAST_RECORD);
+            console.log('[db]last record is ' + row.LAST_RECORD);
             after_volume_close = function () {//{{{
                 fs.chmod(old_name, '444');
                 self.volume_id += 1;
                 new_name = self.config.path + '/volume_' + self.volume_id + '.db';
-                console.log('open new volume ' + new_name + ' new volume id is ' + self.volume_id);
+                console.log('[db]open new volume ' + new_name + ' new volume id is ' + self.volume_id);
                 self.volume = new sqlite3.Database(new_name);
                 if (self.flush_id !== undefined) {
-                    console.log('begin transaction');
+                    console.log('[db]begin transaction');
                     self.volume.exec('BEGIN TRANSACTION');
                 }
                 self.volume.serialize(function () {
-                    console.log('init new volume file');
+                    console.log('[db]init new volume file');
                     self.volume.run(sql.CREATE_SQL);
                     self.volume.run(sql.CREATE_META_SQL);
                     self.volume.run(sql.INSERT_META_SQL, [0, self.volume_id]);
                 });
-                console.log('update writer volume id to ' + self.volume_id);
+                console.log('[db]update writer volume id to ' + self.volume_id);
                 self.meta.run(sql.UPDATE_META_VOLUME_SQL, [self.volume_id], function () {
                     var i;
                     for (i in self.callbacks) {
                         if (self.callbacks.hasOwnProperty(i)) {
-                            console.log('rotate finished callback ' + i);
+                            console.log('[db]rotate finished callback ' + i);
                             self.callbacks[i]();
                         }
                     }
                     self.callbacks = undefined;
                 });
             };//}}}
-            console.log('commit');
             if (self.flush_id !== undefined) {
+                console.log('[db]commit');
                 self.volume.exec('COMMIT');
             }
             self.volume.close(after_volume_close);
@@ -115,7 +115,7 @@ var rotate_writer = function (callback) {//{{{
  */
 var DB = function (config, callback) {//{{{
     "use strict";
-    console.log('new DB');
+    console.log('[db]new DB');
     this.config = config;
     this.meta = new sqlite3.cached.Database(config.path + '/meta.db');
     this.meta.run(sql.CREATE_META_SQL, callback);
@@ -126,10 +126,10 @@ var insert = function (req_id, cmd, body, callback) {//{{{
     var self = this,
         insert_callback = function (err) {
             if (err) {
-                console.log('insert result ' + err);
+                console.log('[db]insert result ' + err);
                 callback(err);
             } else {
-                console.log('insert success for cmd:' + cmd + ' result is ' + this.lastID);
+                console.log('[db]insert success for cmd:' + cmd + ' result is ' + this.lastID);
                 if (this.lastID > VOLUME_SIZE) { // do rotate
                     self.rotate_writer(function () {
                         callback();
@@ -167,17 +167,17 @@ var init_reader = function (index, callback) {//{{{
      *
      */
     this.meta.get(sql.SELECT_META_SQL, [index], function (error, row) {
-        console.log('get meta err: ' + error);
+        console.log('[db]get meta err: ' + error);
         var tableExists = (row !== undefined);
         if (!tableExists) {
             // todo 
-            console.log('copy meta from index 0 ');
+            console.log('[db]copy meta from index 0 ');
             self.meta.run(sql.INSERT_LAST_META_SQL, [index], function (err) {
                 console.log(err);
                 self.init_reader(index, callback);
             });
         } else {
-            console.log('last volume for index ' + index + ' is ' + row.VOLUME);
+            console.log('[db]last volume for index ' + index + ' is ' + row.VOLUME);
             self.volume_id =  row.VOLUME;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
             self.is_latest = false;
@@ -196,12 +196,12 @@ var create_volume_db = function (callback, sqlite_mode) {//{{{
     var self = this;
     this.volume_file = this.config.path + '/volume_' + this.volume_id + '.db';
     this.is_latest = false;
-    console.log('open volume file ' + self.volume_file);
+    console.log('[db]open volume file ' + self.volume_file);
     fs.stat(self.volume_file, function (err, stat) {
-        console.log('check file exist err:' + err);
+        console.log('[db]check file exist err:' + err);
         if (err) {
             setTimeout(function () {
-                console.log('retry');
+                console.log('[db]retry');
                 self.create_volume_db(callback, sqlite_mode);
             }, constants.settings.RETRY_INTERVAL);
         } else {
@@ -249,7 +249,7 @@ var rotate_reader = function (callback) {//{{{
  */
 var watchfile = function (callback) {//{{{
     "use strict";
-    console.log("watching " + this.volume_file);
+    console.log("[db]watching " + this.volume_file);
     this.watchfs = fs.watch(this.volume_file, function (action, filename) {
         callback();
     });
@@ -261,9 +261,9 @@ var kill = function () {//{{{
         clearInterval(this.flush_id);
         this.volume.exec('COMMIT');
     }
-    console.log('close volme.db');
+    console.log('[db]close volme.db');
     this.volume.close();
-    console.log('close meta.db');
+    console.log('[db]close meta.db');
     this.meta.close();
     if (this.is_latest) {
         this.watchfs.close();
@@ -278,7 +278,7 @@ var flush_per_second = function () {//{{{
             return;
         }
         if (self.cnt > 0) {
-            console.log('do flush');
+            console.log('[db]do flush');
             self.volume.exec('COMMIT');
             self.volume.exec('BEGIN TRANSACTION');
             self.cnt = 0;
