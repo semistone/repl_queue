@@ -29,9 +29,9 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
     loop_message = function (last_record) {//{{{
         self.db.volume.each(sql.SELECT_SQL, [last_record], function (err, row) {
             if (err) {
-                console.log('query next record error:' + err + ' reopen again');
+                console.log('[reader]query next record error:' + err + ' reopen again');
                 self.db.create_volume_db(function () {
-                    console.log('retry');
+                    console.log('[reader]retry');
                     retry = retry + 1;
                     if (retry < constants.settings.MAX_RETRY) {
                         loop_message(last_record);
@@ -41,7 +41,7 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
             }
             retry = 0;
             working_queue.push(row);
-            console.log('push id ' + row.ID);
+            console.log('[reader]push id ' + row.ID);
         }, self.each_complete_callback);
     };//}}}
 
@@ -53,7 +53,7 @@ var get_last_record_and_loop_message = function (index, finish_callback) {//{{{
         var tableExists = (row !== undefined);
         if (!tableExists) {
             self.db.meta.run(sql.INSERT_META_SQL, [index, 0], function () {
-                console.log("insert meta done");
+                console.log("[reader]insert meta done");
                 loop_message(0);
             });
         } else {
@@ -76,7 +76,7 @@ var loop_scan_message = function () {//{{{
         self = this;
 
     if (this.processing) {
-        console.log('i am processing');
+        console.log('[reader]i am processing');
         return;
     }
     this.processing = true;
@@ -100,14 +100,14 @@ var loop_scan_message = function () {//{{{
                 console.log('current row id is ' + rowID);
                 self.db.volume.get(sql.CHECK_FINISH_VOLUME, [rowID], function (err, row) {
                     if (err) {
-                        console.log('not match last record yet err ' + err);
+                        console.log('[reader]not match last record yet err ' + err);
                         return;
                     }
                     if (row.CNT > 0) {
                         console.log("[reader]change to next volume");
                         self.db.rotate_reader(function (err) { // rotate success then continue loop
                             if (err) {
-                                console.log('rotate error ' + err);
+                                console.log('[reader]rotate error ' + err);
                                 return;
                             }
                             self.get_last_record_and_loop_message(self.index, finish_callback);

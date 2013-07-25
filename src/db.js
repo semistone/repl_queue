@@ -183,7 +183,7 @@ var insert = function (req_id, cmd, body, callback) {//{{{
         });
     } else {
         this.last_record = this.last_record + 1;
-        if (this.last_record == VOLUME_SIZE) {
+        if (this.last_record === VOLUME_SIZE) {
             this.rotating = true;
         }
         console.log('[db] insert into volume and last id is ' + this.last_record);
@@ -238,7 +238,7 @@ var init_reader = function (index, callback) {//{{{
             // todo 
             console.log('[db]copy meta from index 0 ');
             self.meta.run(sql.INSERT_LAST_META_SQL, [index], function (err) {
-                console.log(err);
+                console.log('[reader] insert last meta fail err:' + err);
                 self.init_reader(index, callback);
             });
         } else {

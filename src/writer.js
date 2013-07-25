@@ -38,7 +38,7 @@ var io_handler = function () {//{{{
  * 
  * @path /repl/$queue_id/$cmd/$req_id
  */
-var http_handler = function(){//{{{
+var http_handler = function () {//{{{
     "use strict";
     var self = this,
         acl = this.config.writer.acl;
@@ -138,6 +138,7 @@ var Writer = function (config) {//{{{
     this.config = config;
     this.db = new DB(config);
     this.server = new Server(config);
+    this.socketlist = [];
 
     this.db.init_writer(function () {
         if (self.config.writer === undefined) {
@@ -158,15 +159,15 @@ var Writer = function (config) {//{{{
     });
 };//}}}
 
-(function(){//{{{
+(function () {//{{{
+    "use strict";
     Writer.prototype = {
-       closed: false,
-       kill: kill,
-       http_handler: http_handler,
-       io_handler: io_handler,
-       binding_signal: binding_signal,
-       socketlist: [],
+        closed: false,
+        kill: kill,
+        http_handler: http_handler,
+        io_handler: io_handler,
+        binding_signal: binding_signal,
     };
 }());//}}}
 
-module.exports = Writer
+module.exports = Writer;

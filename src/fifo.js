@@ -49,7 +49,7 @@ var consume_result_callback = function () {//{{{
             });
             retry = 0;
         } else { // task fail
-            console.log('[fifo]consume false retry:' + retry + ' for id:' + row.ID);
+            console.log('[fifo][' + self.index + ']consume false retry:' + retry + ' for id:' + row.ID);
             retry = retry + 1;
             if (retry > constants.settings.MAX_RETRY) {
                 throw new Error('retry to many times');
@@ -75,16 +75,17 @@ var consume_result_callback = function () {//{{{
 var sequence_task = function () {//{{{
     "use strict";
     var row;
-    console.log('[fifo]do sequence task, remain task size ' + this.working_queue.length);
+    console.log('[fifo][' + this.index + ']do sequence task, remain task size ' + this.working_queue.length);
     if (this.working_queue.length === 0) { // all task done
         return;
     }
     row = this.working_queue.shift();
     if (this.filter !== undefined && this.filter(row) === false) {
-        (this.consume_result_callback())(true, row); //assume process success if filter out.
+        console.log('[fifo] filter row ' + row.ID + ' not pass, callback as success.');
+        (this.consume_result_callback())(true, row);
         return;
     }
-    console.log('[fifo]consume row ' + row.ID);
+    console.log('[fifo][' + this.index + ']consume row ' + row.ID);
     this.reader.consumer_function(row, this.consume_result_callback());
 };//}}}
 
@@ -100,12 +101,13 @@ var FIFO = function (config, index) {//{{{
     var reader_setting,
         self = this;
     fifos[index] = this;
-    console.log('index is ' + index);
+    console.log('[fifo]index is ' + index);
     reader_setting = config.reader[index].consumer_function;
     if (reader_setting === undefined) {
         throw new Error('consumer_function is undefined');
     }
     this.index = index;
+    this.event_emitter = new Emitter();
     this.reader = new reader_setting[0](reader_setting[1]);
     this.filter = config.reader[index].filter;
     this.meta = new sqlite3.cached.Database(config.path + DELIMITER + 'meta.db');
@@ -121,6 +123,7 @@ var FIFO = function (config, index) {//{{{
 var each_complete_callback = function (working_queue, finish_callback) {//{{{
     "use strict";
     var self = this;
+    console.log('[fifo][' + this.index + '] init set working queue size ' + working_queue.length);
     this.working_queue = working_queue;
     this.finish_callback = finish_callback;
     return function (err, rows) {//{{{
@@ -128,10 +131,10 @@ var each_complete_callback = function (working_queue, finish_callback) {//{{{
             throw new Error('fifo still processing');
         }
         self.processing = true;
-        console.log('select result size for index ' + self.index + ' is ' + rows);
+        console.log('[fifo]select result size for index ' + self.index + ' is ' + rows);
         self.queue_size = self.remain_cnt = rows;
         if (rows === undefined || rows === 0) { // check empty result.
-            console.log('empty rows');
+            console.log('[fifo]empty rows');
             finish_callback(0);
             self.processing = false;
             return;
@@ -203,7 +206,6 @@ module.exports.kill = kill;
         queue_size: 0,
         remain_cnt: 0,
         each_complete_callback: each_complete_callback,
-        event_emitter: new Emitter(),
         check_kill: check_kill,
         sequence_task: sequence_task,
         consume_result_callback: consume_result_callback,

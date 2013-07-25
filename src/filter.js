@@ -14,9 +14,11 @@ var filter = function (filter_column, filter_rule) {//{{{
 var mod_rule = function (mod, index) {//{{{
     "use strict";
     var mod_filter_rule = function (value) {
+        var ret;
         console.log('[filter]value is ' + value + ' mod is ' + mod + ' index is ' + index);
-        console.log('[filter] return ' + (value % mod) === index);
-        return (value % mod) === index;
+        ret = ((value % mod) === index);
+        console.log('[filter] return ' + ret);
+        return ret;
     };
     return mod_filter_rule;
 };//}}}
