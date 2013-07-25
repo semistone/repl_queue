@@ -5,10 +5,8 @@ var fs = require('fs'),
     constants = require('./constants.js'),
     sql = constants.sql,
     fifo_module = require('./fifo.js'),
-    config = require('./example/config.js'),
     DELIMITER = '/',
-    VOLUME_SIZE = constants.settings.VOLUME_SIZE,
-    index_handlers = {};
+    VOLUME_SIZE = constants.settings.VOLUME_SIZE;
 /**
  * loop message from sql
  */
@@ -134,12 +132,13 @@ var loop_scan_message = function () {//{{{
  *     get_last_record_and_loop_message
  *
  */
-var Reader = function (index) {//{{{
+var Reader = function (config, index) {//{{{
     "use strict";
     var self = this,
         filter;
     this.processing = false; // if message loop is processing
     this.index = index;
+    this.config = config;
     this.fifo = new fifo_module.FIFO(config, index);
     this.db = new DB(config, function () {
         self.db.init_reader(index, function () {
@@ -183,14 +182,12 @@ var binding_signal = function () {//{{{
 };//}}}
 
 
-
 /**
  * main 
  *
  */
 (function () {//{{{
     "use strict";
-    var index;
     Reader.prototype = {
         'loop_scan_message': loop_scan_message,
         'get_last_record_and_loop_message': get_last_record_and_loop_message,
@@ -198,10 +195,5 @@ var binding_signal = function () {//{{{
         'kill': kill,
         'killed': false, // if kill signal fired, then killed = true
     };
-    console.log('init reader ' + config.reader);
-    for (index in config.reader) {
-        if (config.reader.hasOwnProperty(index)) {
-            index_handlers[index] = new Reader(index);
-        }
-    }
 }());//}}}
+module.exports = Reader;
