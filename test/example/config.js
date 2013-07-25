@@ -1,11 +1,11 @@
-var rely_rest = require('../readers/rely_rest.js');
-var dist = require('../readers/dist.js');
-var ip_acl = require('../ip_acl.js');
-var filter_module = require('../filter.js');
-var rely_socketio = require('../readers/rely_socketio.js');
+var rely_rest = require('../../src/readers/rely_rest.js');
+var dist = require('../../src/readers/dist.js');
+var ip_acl = require('../../src/ip_acl.js');
+var filter_module = require('../../src/filter.js');
+var rely_socketio = require('../../src/readers/rely_socketio.js');
 config = {
     type: 'fifo',
-    path: './example',
+    path: '../test/example',
     server: {
         listen: 9090,
         socketio_handler_enable: true,
