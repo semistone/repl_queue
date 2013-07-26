@@ -14,6 +14,20 @@ var safe_db_commit = function (db) {//{{{
         });
     }
 };//}}}
+var safe_db_commit_and_begin = function (db) {//{{{
+    "use strict";
+    if (db.tx_status === 2) {
+        console.log('[db]commit2');
+        db.tx_status = 3;
+        db.exec('COMMIT', function(){
+            console.log('[db]begin transaction2');
+            db.tx_status = 1;
+            db.exec('BEGIN TRANSACTION', function() {
+                db.tx_status = 2;
+            });
+        });
+    }
+};//}}}
 
 var safe_db_begin = function (db) {//{{{
     "use strict";
@@ -359,8 +373,7 @@ var flush_per_second = function () {//{{{
         }
         if (self.cnt > 0) {
             console.log('[db]do flush');
-            safe_db_commit(self.volume);
-            safe_db_begin(self.volume);
+            safe_db_commit_and_begin(self.volume);
             self.cnt = 0;
         }
     }, constants.settings.FLUSH_INTERVAL);
