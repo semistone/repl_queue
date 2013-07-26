@@ -9,22 +9,20 @@ var safe_db_commit = function (db) {//{{{
     if (db.tx_status === 2) {
         console.log('[db]commit');
         db.tx_status = 3;
-        db.exec('COMMIT', function(){
-            db.tx_status = undefined;
-        });
+        db.exec('COMMIT');
+        db.tx_status = undefined;
     }
 };//}}}
 var safe_db_commit_and_begin = function (db) {//{{{
     "use strict";
     if (db.tx_status === 2) {
-        console.log('[db]commit2');
-        db.tx_status = 3;
-        db.exec('COMMIT', function(){
-            console.log('[db]begin transaction2');
-            db.tx_status = 1;
-            db.exec('BEGIN TRANSACTION', function() {
-                db.tx_status = 2;
-            });
+        console.log('[db]commit2' + db.create);
+        db.exec('COMMIT');
+        console.log('[db]begin transaction2');
+        db.tx_status = 1;
+        db.exec('BEGIN TRANSACTION', function() {
+            console.log('[db]begin transaction2 finish');
+            db.tx_status = 2;
         });
     }
 };//}}}
@@ -209,7 +207,9 @@ var insert = function (req_id, cmd, body, callback) {//{{{
         if (this.last_record === VOLUME_SIZE) {
             this.rotating = true;
         }
-        console.log('[db] insert into volume and last id is ' + this.last_record);
+        if (this.cnt % 200 == 0) {
+           console.log('[db] insert into volume and last id is ' + this.last_record);
+        }
         this.volume.run(sql.INSERT_VOLUME_SQL,
             [req_id, cmd, body, new Date().getTime() / 1000],
             insert_callback);
