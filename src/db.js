@@ -6,10 +6,12 @@ var sqlite3 = require('sqlite3').verbose(),
 
 var safe_db_commit = function (db) {//{{{
     "use strict";
-    if (db.tx_status === true) {
+    if (db.tx_status === 2) {
         console.log('[db]commit');
-        db.tx_status = undefined;
-        db.exec('COMMIT');
+        db.tx_status = 3;
+        db.exec('COMMIT', function(){
+            db.tx_status = undefined;
+        });
     }
 };//}}}
 
@@ -17,8 +19,10 @@ var safe_db_begin = function (db) {//{{{
     "use strict";
     if (db.tx_status === undefined) {
         console.log('[db]begin transaction');
-        db.tx_status = true;
-        db.exec('BEGIN TRANSACTION');
+        db.tx_status = 1;
+        db.exec('BEGIN TRANSACTION', function() {
+            db.tx_status = 2;
+        });
     }
 };//}}}
 

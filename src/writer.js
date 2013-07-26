@@ -56,7 +56,7 @@ var http_handler = function () {//{{{
             return;
         }
         if (req.method === 'POST') {
-            console.log('[writer]new request ' + req.url);
+            //console.log('[writer]new request ' + req.url);
             body = '';
             cmd_and_id = match.exec(req.url);
             queue = cmd_and_id[1];
