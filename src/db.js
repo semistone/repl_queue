@@ -6,8 +6,8 @@ var sqlite3 = require('sqlite3').verbose(),
 
 var safe_db_commit = function (db) {//{{{
     "use strict";
-    console.log('[db]commit');
     if (db.tx_status === true) {
+        console.log('[db]commit');
         db.tx_status = undefined;
         db.exec('COMMIT');
     }
@@ -15,8 +15,8 @@ var safe_db_commit = function (db) {//{{{
 
 var safe_db_begin = function (db) {//{{{
     "use strict";
-    console.log('[db]begin transaction');
     if (db.tx_status === undefined) {
+        console.log('[db]begin transaction');
         db.tx_status = true;
         db.exec('BEGIN TRANSACTION');
     }
@@ -59,8 +59,10 @@ var init_writer = function (callback) {//{{{
             self.volume.run(sql.CREATE_SQL);
             self.volume.run(sql.CREATE_META_SQL);
             self.volume.get(sql.GET_LAST_RECORD_VOLUME, function (err, row) {
-                console.log('[db]init writer last record is ' + row.ID);
-                self.last_record = row.ID;
+                if (row !== undefined) {
+                    console.log('[db]init writer last record is ' + row.ID);
+                    self.last_record = row.ID;
+                }
             });
             self.volume.run(sql.INSERT_VOLUME_META, self.volume_id, function () {
                 console.log('[db]insert volume meta');
