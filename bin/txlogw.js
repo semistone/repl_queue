@@ -1,6 +1,6 @@
 #!/usr/bin/node
 "use strict";
-var Writer = require('../src/writer.js'),
+var Writer = require('../lib/writer.js'),
     writer,
     config;
 var config_file = process.argv[2];

@@ -1,7 +1,7 @@
 #!/usr/bin/node
 "use strict";
 var config,
-    Reader = require('../src/reader.js'),
+    Reader = require('../lib/reader.js'),
     index_handlers = {},
     config_file,
     index = 0;

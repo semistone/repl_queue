@@ -1,8 +1,8 @@
-var rely_rest = require('../../src/readers/rely_rest.js');
-var dist = require('../../src/readers/dist.js');
-var ip_acl = require('../../src/ip_acl.js');
-var filter_module = require('../../src/filter.js');
-var rely_socketio = require('../../src/readers/rely_socketio.js');
+var rely_rest = require('../../lib/readers/rely_rest.js');
+var dist = require('../../lib/readers/dist.js');
+var ip_acl = require('../../lib/ip_acl.js');
+var filter_module = require('../../lib/filter.js');
+var rely_socketio = require('../../lib/readers/rely_socketio.js');
 config = {
     type: 'fifo',
     path: '../test/example',

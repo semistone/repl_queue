@@ -3,7 +3,7 @@
 var sqlite3 = require('sqlite3').verbose(),
     dir = process.argv[2],
     argc = process.argv.length,
-    sql = require('../src/constants.js').sql,
+    sql = require('../lib/constants.js').sql,
     cmd,
     db;
 console.log('open ' + dir);
