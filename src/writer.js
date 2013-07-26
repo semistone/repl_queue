@@ -49,6 +49,7 @@ var http_handler = function () {//{{{
             cmd,
             req_id,
             insert_callback;
+        self.cnt = self.cnt + 1;
         if (acl !== undefined && acl(req) === false) {
             console.log('[writer]access deny');
             res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -56,7 +57,9 @@ var http_handler = function () {//{{{
             return;
         }
         if (req.method === 'POST') {
-            //console.log('[writer]new request ' + req.url);
+            if (self.cnt % 100 === 0) {
+                console.log('[writer]new request ' + req.url);
+            }
             body = '';
             cmd_and_id = match.exec(req.url);
             queue = cmd_and_id[1];
@@ -139,7 +142,7 @@ var Writer = function (config) {//{{{
     this.db = new DB(config);
     this.server = new Server(config);
     this.socketlist = [];
-
+    this.cnt = 0;
     this.db.init_writer(function () {
         if (self.config.writer === undefined) {
             console.log('[writer]writer not exist');
