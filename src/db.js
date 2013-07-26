@@ -47,20 +47,23 @@ var init_writer = function (callback) {//{{{
         } else {
             console.log('[db]last volume for writer is ' + row.VOLUME);
             self.volume_id = row.VOLUME;
-            self.last_record = row.LAST_RECORD;
             self.volume_file = self.config.path + '/volume_' + self.volume_id + '.db';
         }
         console.log('[db]open volume file in ' + self.volume_file);
         self.volume = new sqlite3.Database(self.volume_file);
         if (self.flush_writer_id !== undefined) {
-            console.log('[db]begin transaction');
             safe_db_begin(self.volume);
         }
         self.volume.serialize(function () {
             console.log('[db]init writer volume file');
             self.volume.run(sql.CREATE_SQL);
             self.volume.run(sql.CREATE_META_SQL);
+            self.volume.get(sql.GET_LAST_RECORD_VOLUME, function (err, row) {
+                console.log('[db]init writer last record is ' + row.ID);
+                self.last_record = row.ID;
+            });
             self.volume.run(sql.INSERT_VOLUME_META, self.volume_id, function () {
+                console.log('[db]insert volume meta');
                 callback();
             });
         });
