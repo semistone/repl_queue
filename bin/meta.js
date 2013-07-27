@@ -16,10 +16,14 @@ if (argc === 2) {
 if (argc === 3) {
     db = new sqlite3.Database(dir + 'meta.db', sqlite3.OPEN_READONLY);
     db.each("SELECT * FROM QUEUE_META", function (err, row) {
+        if (err) {
+            console.log('[meta]' + err);
+            return;
+        }
         var volume_file,
             volume,
             last_record;
-        if (row.ID === 0) {
+        if (row.ID === '0') {
             volume_file = dir + 'volume_' + row.VOLUME + '.db';
             volume = new sqlite3.Database(volume_file, sqlite3.OPEN_READONLY);
             volume.get(sql.GET_LAST_RECORD_VOLUME, function (err2, row2) {
