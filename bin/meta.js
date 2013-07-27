@@ -7,6 +7,12 @@ var sqlite3 = require('sqlite3').verbose(),
     cmd,
     db;
 console.log('open ' + dir);
+if (argc === 2) {
+    console.log('help');
+    console.log('    show: meta <repl_dir>');
+    console.log('    set volume: meta <repl_dir> set <index> <volume>');
+    console.log('    set last record: meta <repl_dir> set <index> <volume> <last_record>');
+}
 if (argc === 3) {
     db = new sqlite3.Database(dir + 'meta.db', sqlite3.OPEN_READONLY);
     db.each("SELECT * FROM QUEUE_META", function (err, row) {
