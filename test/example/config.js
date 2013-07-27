@@ -28,6 +28,9 @@ config = {
         },
         '3':{// index
             consumer_function: [ExampleReader, '']
+        },
+        '4':{
+            consumer_function: [dist, '../test/test_dist'],
         }
     },
     writer: {
