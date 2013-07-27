@@ -6,6 +6,7 @@ var rely_socketio = require('../../lib/readers/rely_socketio.js');
 config = {
     type: 'fifo',
     path: '../test/example',
+    max_volumes: 5,
     server: {
         listen: 9090,
         socketio_handler_enable: true,

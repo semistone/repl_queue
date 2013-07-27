@@ -35,10 +35,18 @@ if (argc > 3) {
     cmd = process.argv[3];
     if (cmd === 'set') {
         var index = process.argv[4];
-        var last_record = process.argv[5];
-        console.log('set meta index ' + index + ' last record:' + last_record);
-        db = new sqlite3.Database(dir + 'meta.db');
-        db.run('update QUEUE_META set LAST_RECORD=? where ID=?', [last_record, index]);
-        db.close();
+        var volume = process.argv[5];
+        var last_record = process.argv[6];
+        if (last_record !== undefined) {
+            console.log('set meta index ' + index + ' volume ' + volume + ' last record:' + last_record);
+            db = new sqlite3.Database(dir + 'meta.db');
+            db.run('update QUEUE_META set LAST_RECORD=? where ID=? and VOLUME=?', [last_record, index, volume]);
+            db.close();
+        } else if (volume !== undefined) {
+            console.log('set meta index ' + index + ' volume ' + volume);
+            db = new sqlite3.Database(dir + 'meta.db');
+            db.run('update QUEUE_META set VOLUME=? where ID=?', [volume, index]);
+            db.close();
+        }
     }
 }
