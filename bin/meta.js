@@ -15,7 +15,7 @@ if (argc === 2) {
 }
 if (argc === 3) {
     db = new sqlite3.Database(dir + 'meta.db', sqlite3.OPEN_READONLY);
-    db.each("SELECT * FROM QUEUE_META", function (err, row) {
+    db.each("SELECT * FROM QUEUE_META order by ID asc", function (err, row) {
         if (err) {
             console.log('[meta]' + err);
             return;
