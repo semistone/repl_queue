@@ -1,8 +1,11 @@
 repl_queue
 ==========
 The idea of repl is use local queue to preserve some request needed to 
-invoke to remote's api, which message allow async message pattern.
-If remote is out of service or network is blocked,
+invoke remote api and those request compare to synchronize request,
+which require response immediately. Async request could response as 
+message accepted, then process those requests later. It also very useful
+in batch tasks.
+Aso if remote is out of service or network is blocked,
 then those requests will hold inside
 local queue, after remote host is up and ready to serve, then the 
 request will rely to remote by correct order(fifo).
