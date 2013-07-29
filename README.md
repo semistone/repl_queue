@@ -9,10 +9,14 @@ request will rely to remote by correct order(fifo).
 It is similar concept as email queue.
 
 ### source directory
-####lib basic libraries
-####bin some commandline tools(see README in bin/README.md)
-####test some testing data
-####test/test_writer txlogw benchmark
+####lib
+    basic libraries
+####bin
+    some commandline tools(see README in bin/README.md)
+####test
+    some testing data
+####test/test_writer
+     txlogw benchmark
 ### receive http post request -> insert into sqlite
 ### receive sqlite file modify event -> start to consume 
     standard consumer 
