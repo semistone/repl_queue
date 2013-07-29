@@ -1,5 +1,5 @@
 ### show meta
-    txlogw <logdir>
+    meta <logdir>
     for example:
         cd bin
         ./meta ../test/example/
