@@ -12,6 +12,7 @@ config = {
     type: 'fifo',
     path: '../test/example',
     max_volumes: 5,
+    is_binary: false,
     server: {
         listen: 9090,
         socketio_handler_enable: true,
