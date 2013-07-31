@@ -4,6 +4,11 @@
         cd bin
         ./meta ../test/example/
 
+### volume dump
+    volume_dump <logdir> <volume>
+    for example:
+        cd bin
+        ./volume_dump.js ../test/example/ 0
 ### set meta
     txlogw <logdir> set <index> <volume> <last_record>
     for example:
