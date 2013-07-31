@@ -47,10 +47,13 @@ if (argc > 3) {
         var index = process.argv[4];
         var volume = process.argv[5];
         var last_record = process.argv[6];
+        if (index === '0') {
+            throw new Error('can not set index 0(writer index)');
+        }
         if (last_record !== undefined) {
             console.log('set meta index ' + index + ' volume ' + volume + ' last record:' + last_record);
             db = new sqlite3.Database(dir + 'meta.db');
-            db.run('update QUEUE_META set LAST_RECORD=? where ID=? and VOLUME=?', [last_record, index, volume]);
+            db.run('update QUEUE_META set LAST_RECORD=?, VOLUME=? where ID=?', [last_record, volume, index]);
             db.close();
         } else if (volume !== undefined) {
             console.log('set meta index ' + index + ' volume ' + volume);
