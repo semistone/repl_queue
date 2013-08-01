@@ -20,11 +20,15 @@
     txlogw <config.js>
     for example:
         cd bin
-        ./txlogw ../test/example/config.js
+        ./txlogw start ../test/example/config.js
+        log file in ../test/example/txlogw.log
+        pid file in ../test/example/txlogw.pid
 
 ### txlogr
     start txlogr to consume request
-    txlogr <config.js> <index>
+    txlogr start <config.js> <index>
     for example:
         cd bin
         ./txlogr ../test/example/config.js 3 # 3 is example consumer
+        log file in ../test/example/txlogr_4.log
+        pid file in ../test/example/txlogr_4.pid

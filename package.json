@@ -1,0 +1,25 @@
+{
+    "name": "repl_queue",
+    "description": "Repl queue",
+    "version": "0.0.1",
+    "homepage": "https://github.com/semistone/repl_queue",
+    "author": {
+        "name": "Angus Chen",
+        "url": "http://angus-ec2.siraya.net/",
+        "email": "semistone@gmail.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/semistone/repl_queue.git"
+    },
+    "dependencies": {
+        "sqlite3": ">=2.1.1",
+        "simple-daemon" : ">=0.1.7"
+    },
+    "bin": {
+      "txlogw": "./bin/txlogw.js",
+      "txlogr": "./bin/txlogr.js",
+      "meta": "./bin/meta.js",
+      "volume_dump": "./bin/volume_dump.js"
+    }
+}
