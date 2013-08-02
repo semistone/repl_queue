@@ -14,7 +14,9 @@
     },
     "dependencies": {
         "sqlite3": ">=2.1.1",
-        "simple-daemon" : ">=0.1.7"
+        "simple-daemon" : "",
+        "socket.io-client" : "",
+        "socket.io" : ""
     },
     "bin": {
       "txlogw": "./bin/txlogw.js",
